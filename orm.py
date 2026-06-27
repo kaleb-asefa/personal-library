@@ -2,7 +2,7 @@ from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, Table
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker
 from contextlib import contextmanager
 
-engine = create_engine('sqlite:///library.db', echo=True)
+engine = create_engine('sqlite:///library.db', echo=False)
 
 Base = declarative_base()
 
