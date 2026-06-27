@@ -16,7 +16,7 @@ class Book(Base):
     title = Column(String, nullable=False)
     author_id = Column(Integer, ForeignKey('authors.author_id'), nullable=False)
     published_year = Column(Integer)
-    status = Column(String, Enum('unread', 'reading', 'read', name='status_enum'), default='unread')
+    status = Column(Enum('read', 'unread', name='status_enum'), nullable=False)
     rating = Column(Integer, check=Column(Integer, CheckConstraint('rating >= 1 AND rating <= 5'), nullable=True))
 
     author = relationship("Author", back_populates="books")
