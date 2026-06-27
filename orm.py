@@ -2,7 +2,7 @@ from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, Table
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker
 from contextlib import contextmanager
 
-engine = create_engine('sqlite:///library.db')
+engine = create_engine('sqlite:///library.db', echo=True)
 
 Base = declarative_base()
 
@@ -17,7 +17,7 @@ class Book(Base):
     author_id = Column(Integer, ForeignKey('authors.author_id'), nullable=False)
     published_year = Column(Integer)
     status = Column(Enum('read', 'unread', name='status_enum'), nullable=False)
-    rating = Column(Integer, check=Column(Integer, CheckConstraint('rating >= 1 AND rating <= 5'), nullable=True))
+    rating = Column(Integer, CheckConstraint('rating >= 1 AND rating <= 5'), nullable=True)
 
     author = relationship("Author", back_populates="books")
     genres = relationship("Genre", secondary='books_genres', back_populates="books")

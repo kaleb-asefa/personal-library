@@ -1,7 +1,4 @@
-from orm import Base, Book, Author, Genre, get_session, books_genres
-from sqlalchemy import create_engine
-
-engine = create_engine('sqlite:///library.db', echo=True)
+from orm import Base, Book, Author, Genre, get_session, engine
 
 
 frank_herbert = Author(name='Frank Herbert', country='USA')
