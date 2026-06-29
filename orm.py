@@ -2,7 +2,7 @@ from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, Table
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker
 from contextlib import contextmanager
 
-engine = create_engine('sqlite:///library.db', echo=False)
+engine = create_engine('sqlite:///library.db', echo=True)
 
 Base = declarative_base()
 
@@ -50,7 +50,7 @@ class Genre(Base):
 
 Base.metadata.create_all(engine)
 
-Session = sessionmaker(bind=engine)
+Session = sessionmaker(bind=engine, expire_on_commit=False)
 
 @contextmanager
 def get_session():

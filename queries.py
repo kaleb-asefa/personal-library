@@ -1,4 +1,4 @@
-from orm import Base, Book, Author, Genre, get_session
+from orm import Book, Author, Genre, get_session
 
 def get_all_books():
     with get_session() as session:
@@ -30,5 +30,3 @@ def get_books_by_author(author_name):
 def top_rated_books(min_rating=4):
     with get_session() as session:
         return session.query(Book).filter(Book.rating >= min_rating).all()
-    
-get_all_books()
