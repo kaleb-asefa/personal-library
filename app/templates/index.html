@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    {% for book in books %}
+        <h2>{{ book.title }}</h2>
+        <p>Author: {{ book.author.name }}</p>
+        <p>Genres: {% for genre in book.genres %}{{ genre.name }}{% if not loop.last %}, {% endif %}{% endfor %}</p>
+        <p>Read: {{ 'Yes' if book.read else 'No' }}</p>
+    {% endfor %}
+</body>
+</html>
