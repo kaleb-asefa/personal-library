@@ -1,4 +1,16 @@
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, EmailStr
+
+class UserBase(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    username: str = Field(min_length=1, max_length=255)
+    email: EmailStr = Field( max_length=255)
+    password: str = Field(min_length=1, max_length=255)
+
+class UserCreate(UserBase):
+    pass
+
+class UserResponse(UserBase):
+    user_id: int
 
 
 class authors(BaseModel):
@@ -12,7 +24,7 @@ class Genres(BaseModel):
     genre_id: int
     name: str = Field(min_length=1, max_length=255)
 
-class books(BaseModel):
+class booksResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     book_id: int
     title: str = Field(min_length=1, max_length=255)
