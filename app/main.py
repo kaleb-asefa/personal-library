@@ -11,7 +11,7 @@ from sqlalchemy.orm import joinedload, Session
 from ..orm import Book, Author, Genre, get_db, User
 from ..queries import get_all_books, mark_book_as_read, get_books_by_genre, get_books_by_author, top_rated_books
 
-from .schema import UserCreate, UserResponse, booksResponse
+from .schema import UserCreate, UserResponse, booksResponse, booksCreate
 
 from pathlib import Path
 
@@ -66,6 +66,36 @@ def get_user_books(user_id: int, db: Session = Depends(get_db)):
 @app.get('/api/books', response_model=list[booksResponse])
 def api_books(db : Annotated[Session, Depends(get_db)]):
     return get_all_books(db)
+
+@app.post('/api/books', response_model=booksResponse)
+def api_create_book(book: booksCreate, db: Session = Depends(get_db)):
+    author = db.execute(select(Author).where(Author.author_id == book.author_id)).scalar_one_or_none()
+    if not author:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Author not found")
+    
+    user = db.execute(select(User).where(User.user_id == book.user_id)).scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    
+    genres = db.execute(select(Genre).where(Genre.genre_id.in_(book.genre_ids))).scalars().all()
+    if len(genres) != len(book.genre_ids):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="One or more genres not found")
+    
+    new_book = Book(
+        title=book.title,
+        author=author,
+        published_year=book.published_year,
+        status='unread',
+        rating=0,
+        user=user,
+        genres=genres
+    )
+    
+    db.add(new_book)
+    db.commit()
+    db.refresh(new_book)
+    
+    return new_book
 
 @app.get('/api/books/{book_id}', response_model=booksResponse)
 def api_book_detail(book_id: int, db: Session = Depends(get_db)):
