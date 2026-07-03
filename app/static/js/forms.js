@@ -31,6 +31,46 @@ const submitJson = async (url, payload) => {
     return data;
 };
 
+const getActiveNavHref = (pathname) => {
+    if (pathname === "/users/new") return "/users/new";
+    if (pathname === "/books/new") return "/books/new";
+    if (pathname.startsWith("/users")) return "/users";
+    return "/";
+};
+
+const updateActiveNav = () => {
+    const activeHref = getActiveNavHref(window.location.pathname);
+
+    document.querySelectorAll("[data-nav-link]").forEach((link) => {
+        const isActive = link.getAttribute("href") === activeHref;
+        link.classList.toggle("is-active", isActive);
+
+        if (isActive) {
+            link.setAttribute("aria-current", "page");
+        } else {
+            link.removeAttribute("aria-current");
+        }
+    });
+};
+
+const visitPage = (url) => {
+    const pageContent = document.querySelector("#page-content");
+
+    if (window.htmx && pageContent) {
+        window.htmx.ajax("GET", url, {
+            target: pageContent,
+            select: "#page-content",
+            swap: "outerHTML show:window:top",
+        }).then(() => {
+            window.history.pushState({}, "", url);
+            updateActiveNav();
+        });
+        return;
+    }
+
+    window.location.href = url;
+};
+
 const handleCreateUser = async (form) => {
     const formData = new FormData(form);
     const payload = {
@@ -42,7 +82,7 @@ const handleCreateUser = async (form) => {
     const user = await submitJson("/api/users", payload);
     showMessage(form, "success", "User created.");
     window.setTimeout(() => {
-        window.location.href = `/users/${user.user_id}`;
+        visitPage(`/users/${user.user_id}`);
     }, 500);
 };
 
@@ -65,30 +105,40 @@ const handleAddBook = async (form) => {
     const book = await submitJson("/api/books", payload);
     showMessage(form, "success", "Book added.");
     window.setTimeout(() => {
-        window.location.href = `/users/${book.user_id}/books`;
+        visitPage(`/users/${book.user_id}/books`);
     }, 500);
 };
 
-document.querySelectorAll("[data-api-form]").forEach((form) => {
-    form.addEventListener("submit", async (event) => {
-        event.preventDefault();
-        const submitButton = form.querySelector("button[type='submit']");
-        const formType = form.dataset.apiForm;
+document.body.addEventListener("submit", async (event) => {
+    const form = event.target.closest("[data-api-form]");
+    if (!form) return;
 
-        if (submitButton) submitButton.disabled = true;
+    event.preventDefault();
+    const submitButton = form.querySelector("button[type='submit']");
+    const formType = form.dataset.apiForm;
 
-        try {
-            if (formType === "create-user") {
-                await handleCreateUser(form);
-            }
+    if (submitButton) submitButton.disabled = true;
 
-            if (formType === "add-book") {
-                await handleAddBook(form);
-            }
-        } catch (error) {
-            showMessage(form, "error", error.message);
-        } finally {
-            if (submitButton) submitButton.disabled = false;
+    try {
+        if (formType === "create-user") {
+            await handleCreateUser(form);
         }
-    });
+
+        if (formType === "add-book") {
+            await handleAddBook(form);
+        }
+
+        if (window.htmx) {
+            window.htmx.trigger(document.body, "library:changed");
+        }
+    } catch (error) {
+        showMessage(form, "error", error.message);
+    } finally {
+        if (submitButton) submitButton.disabled = false;
+    }
 });
+
+document.body.addEventListener("htmx:pushedIntoHistory", updateActiveNav);
+document.body.addEventListener("htmx:historyRestore", updateActiveNav);
+window.addEventListener("popstate", updateActiveNav);
+updateActiveNav();
