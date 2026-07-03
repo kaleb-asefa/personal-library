@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Users | Personal Library{% endblock %}
+
+{% block content %}
+    <header class="page-header">
+        <div>
+            <p class="eyebrow">Readers</p>
+            <h1>Library users</h1>
+            <p class="page-lede">Each profile keeps its own reading shelf and book history.</p>
+        </div>
+        <a class="btn btn-dark" href="/users/new">
+            <i class="bi bi-person-plus"></i>
+            New User
+        </a>
+    </header>
+
+    {% if users %}
+        <section class="user-grid" aria-label="User list">
+            {% for user in users %}
+                {% set avatar_src = url_for('static', path='/profile/default.png') %}
+                <article class="user-card">
+                    <img class="avatar" src="{{ avatar_src }}" alt="{{ user.username }} profile image">
+                    <div class="user-card-body">
+                        <div>
+                            <h2>{{ user.username }}</h2>
+                            <p>{{ user.email }}</p>
+                        </div>
+                        <div class="user-card-footer">
+                            <span class="mini-stat">
+                                <i class="bi bi-book"></i>
+                                {{ user.books|length }} {{ 'book' if user.books|length == 1 else 'books' }}
+                            </span>
+                            <a class="icon-link" href="/users/{{ user.user_id }}" aria-label="Open {{ user.username }}">
+                                <i class="bi bi-arrow-right"></i>
+                            </a>
+                        </div>
+                    </div>
+                </article>
+            {% endfor %}
+        </section>
+    {% else %}
+        <section class="empty-state">
+            <i class="bi bi-person-plus"></i>
+            <h2>No users yet</h2>
+            <p>Create a reader profile to start organizing books by user.</p>
+            <a class="btn btn-dark" href="/users/new">
+                <i class="bi bi-person-plus"></i>
+                New User
+            </a>
+        </section>
+    {% endif %}
+{% endblock %}

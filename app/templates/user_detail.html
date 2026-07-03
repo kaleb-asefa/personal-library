@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}{{ user.username }} | Personal Library{% endblock %}
+
+{% block content %}
+    {% set avatar_src = url_for('static', path='/profile/default.png') %}
+    {% set read_count = books|selectattr('status', 'equalto', 'read')|list|length %}
+
+    <section class="profile-hero">
+        <img class="profile-avatar" src="{{ avatar_src }}" alt="{{ user.username }} profile image">
+        <div class="profile-copy">
+            <p class="eyebrow">Reader profile</p>
+            <h1>{{ user.username }}</h1>
+            <p>{{ user.email }}</p>
+        </div>
+        <div class="profile-actions">
+            <a class="btn btn-outline-dark" href="/users/{{ user.user_id }}/books">
+                <i class="bi bi-book"></i>
+                Books
+            </a>
+            <a class="btn btn-dark" href="/books/new">
+                <i class="bi bi-plus-lg"></i>
+                Add Book
+            </a>
+        </div>
+    </section>
+
+    <section class="stats-grid" aria-label="User stats">
+        <div class="stat-panel">
+            <span>Total books</span>
+            <strong>{{ books|length }}</strong>
+        </div>
+        <div class="stat-panel">
+            <span>Read</span>
+            <strong>{{ read_count }}</strong>
+        </div>
+        <div class="stat-panel">
+            <span>Unread</span>
+            <strong>{{ books|length - read_count }}</strong>
+        </div>
+    </section>
+
+    <header class="section-header">
+        <h2>Recent shelf</h2>
+        <a href="/users/{{ user.user_id }}/books">View all</a>
+    </header>
+
+    {% if books %}
+        <section class="book-grid compact-grid" aria-label="{{ user.username }} books">
+            {% for book in books[:4] %}
+                {% include "_book_tile.html" %}
+            {% endfor %}
+        </section>
+    {% else %}
+        <section class="empty-state">
+            <i class="bi bi-journal-plus"></i>
+            <h2>No books yet</h2>
+            <p>Add a book to this user profile.</p>
+            <a class="btn btn-dark" href="/books/new">
+                <i class="bi bi-plus-lg"></i>
+                Add Book
+            </a>
+        </section>
+    {% endif %}
+{% endblock %}

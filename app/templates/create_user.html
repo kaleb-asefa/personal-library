@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}New User | Personal Library{% endblock %}
+
+{% block content %}
+    <section class="form-layout">
+        <div class="form-intro">
+            <p class="eyebrow">Readers</p>
+            <h1>Create user</h1>
+            <p class="page-lede">Create a profile that books can belong to.</p>
+        </div>
+
+        <form class="action-form" data-api-form="create-user">
+            <div class="form-alert" data-form-message hidden></div>
+
+            <label class="field-group">
+                <span>Username</span>
+                <input class="form-control" name="username" type="text" maxlength="255" required>
+            </label>
+
+            <label class="field-group">
+                <span>Email</span>
+                <input class="form-control" name="email" type="email" maxlength="255" required>
+            </label>
+
+            <label class="field-group">
+                <span>Password</span>
+                <input class="form-control" name="password" type="password" autocomplete="new-password">
+            </label>
+
+            <button class="btn btn-dark submit-button" type="submit">
+                <i class="bi bi-person-plus"></i>
+                Create User
+            </button>
+        </form>
+    </section>
+{% endblock %}

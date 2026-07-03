@@ -1,7 +1,8 @@
 from fastapi import FastAPI, Request, HTTPException, status, Depends
+from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from typing import Annotated
@@ -21,14 +22,62 @@ app = FastAPI()
 
 
 templates = Jinja2Templates(directory=BASE_DIR / 'templates')
+app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 
 
 
 
 @app.get("/")
 def home(request: Request, db: Session = Depends(get_db)):
-    books = db.execute(select(Book).options(joinedload(Book.author), joinedload(Book.genres))).scalars().unique().all()
+    books = db.execute(select(Book).options(joinedload(Book.author), joinedload(Book.genres), joinedload(Book.user))).scalars().unique().all()
     return templates.TemplateResponse(request, "index.html", {'books': books})
+
+@app.get("/users", response_class=HTMLResponse)
+def users_page(request: Request, db: Session = Depends(get_db)):
+    users = db.execute(select(User).options(joinedload(User.books))).scalars().unique().all()
+    return templates.TemplateResponse(request, "users.html", {"users": users})
+
+@app.get("/users/new", response_class=HTMLResponse)
+def create_user_page(request: Request):
+    return templates.TemplateResponse(request, "create_user.html")
+
+@app.get("/users/{user_id}", response_class=HTMLResponse)
+def user_detail_page(user_id: int, request: Request, db: Session = Depends(get_db)):
+    user = db.execute(
+        select(User)
+        .where(User.user_id == user_id)
+        .options(
+            joinedload(User.books).joinedload(Book.author),
+            joinedload(User.books).joinedload(Book.genres),
+        )
+    ).unique().scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    return templates.TemplateResponse(request, "user_detail.html", {"user": user, "books": user.books})
+
+@app.get("/users/{user_id}/books", response_class=HTMLResponse)
+def user_books_page(user_id: int, request: Request, db: Session = Depends(get_db)):
+    user = db.execute(select(User).where(User.user_id == user_id)).scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    
+    books = db.execute(
+        select(Book)
+        .where(Book.user_id == user_id)
+        .options(joinedload(Book.author), joinedload(Book.genres), joinedload(Book.user))
+    ).scalars().unique().all()
+    return templates.TemplateResponse(request, "user_books.html", {"user": user, "books": books})
+
+@app.get("/books/new", response_class=HTMLResponse)
+def add_book_page(request: Request, db: Session = Depends(get_db)):
+    authors = db.execute(select(Author).order_by(Author.name)).scalars().all()
+    genres = db.execute(select(Genre).order_by(Genre.name)).scalars().all()
+    users = db.execute(select(User).order_by(User.username)).scalars().all()
+    return templates.TemplateResponse(
+        request,
+        "add_book.html",
+        {"authors": authors, "genres": genres, "users": users},
+    )
 
 
 @app.post("/api/users", response_model=UserResponse)

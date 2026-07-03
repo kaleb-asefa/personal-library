@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Add Book | Personal Library{% endblock %}
+
+{% block content %}
+    <section class="form-layout form-layout-wide">
+        <div class="form-intro">
+            <p class="eyebrow">Books</p>
+            <h1>Add book</h1>
+            <p class="page-lede">Attach a book to a reader, author, year, and one or more genres.</p>
+        </div>
+
+        <form class="action-form" data-api-form="add-book">
+            <div class="form-alert" data-form-message hidden></div>
+
+            <label class="field-group">
+                <span>Title</span>
+                <input class="form-control" name="title" type="text" maxlength="255" required>
+            </label>
+
+            <div class="form-row">
+                <label class="field-group">
+                    <span>User</span>
+                    <select class="form-select" name="user_id" required>
+                        <option value="">Choose user</option>
+                        {% for user in users %}
+                            <option value="{{ user.user_id }}">{{ user.username }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+
+                <label class="field-group">
+                    <span>Author</span>
+                    <select class="form-select" name="author_id" required>
+                        <option value="">Choose author</option>
+                        {% for author in authors %}
+                            <option value="{{ author.author_id }}">{{ author.name }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+            </div>
+
+            <label class="field-group">
+                <span>Published year</span>
+                <input class="form-control" name="published_year" type="number" min="0" max="3000" required>
+            </label>
+
+            <fieldset class="field-group genre-picker">
+                <legend>Genres</legend>
+                <div class="checkbox-grid">
+                    {% for genre in genres %}
+                        <label>
+                            <input type="checkbox" name="genre_ids" value="{{ genre.genre_id }}">
+                            <span>{{ genre.name }}</span>
+                        </label>
+                    {% endfor %}
+                </div>
+            </fieldset>
+
+            <button class="btn btn-dark submit-button" type="submit">
+                <i class="bi bi-plus-lg"></i>
+                Add Book
+            </button>
+        </form>
+    </section>
+{% endblock %}

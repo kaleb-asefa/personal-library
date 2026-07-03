@@ -1,22 +1,22 @@
 {% extends "base.html" %}
 
-{% block title %}Books | Personal Library{% endblock %}
+{% block title %}{{ user.username }} Books | Personal Library{% endblock %}
 
 {% block content %}
     <header class="page-header">
         <div>
-            <p class="eyebrow">Library</p>
-            <h1>All books</h1>
-            <p class="page-lede">A clean view of every saved book, grouped visually by title, owner, author, genre, status, and rating.</p>
+            <p class="eyebrow">Bookshelf</p>
+            <h1>{{ user.username }}'s books</h1>
+            <p class="page-lede">A user-specific view of saved books and reading progress.</p>
         </div>
-        <div class="stat-chip">
-            <i class="bi bi-journal-bookmark"></i>
-            {{ books|length }} {{ 'book' if books|length == 1 else 'books' }}
-        </div>
+        <a class="btn btn-dark" href="/books/new">
+            <i class="bi bi-plus-lg"></i>
+            Add Book
+        </a>
     </header>
 
     {% if books %}
-        <section class="book-grid" aria-label="Book list">
+        <section class="book-grid" aria-label="{{ user.username }} books">
             {% for book in books %}
                 {% include "_book_tile.html" %}
             {% endfor %}
@@ -25,7 +25,7 @@
         <section class="empty-state">
             <i class="bi bi-journal-plus"></i>
             <h2>No books yet</h2>
-            <p>Add a book and it will appear here.</p>
+            <p>Add a book to this user profile.</p>
             <a class="btn btn-dark" href="/books/new">
                 <i class="bi bi-plus-lg"></i>
                 Add Book
