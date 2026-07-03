@@ -1,11 +1,10 @@
-from .orm import Book, Author, Genre, get_db
+from .orm import Book, Author, Genre, get_db, User
 from sqlalchemy import select
 from sqlalchemy.orm import joinedload
 
-def get_all_books():
-    with get_db() as session:
-        books = session.execute(select(Book).options(joinedload(Book.author), joinedload(Book.genres))).scalars().unique().all()
-        return books
+def get_all_books(db):
+    books = db.execute(select(Book).options(joinedload(Book.author), joinedload(Book.genres), joinedload(Book.user))).scalars().unique().all()
+    return books
     
 def mark_book_as_read(name):
     with get_db() as session:

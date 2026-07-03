@@ -1,4 +1,6 @@
-from orm import Base, Book, Author, Genre, get_db_session, engine
+from orm import Base, Book, Author, Genre, get_db_session, engine, User
+
+test_user = User(username='testuser', email='test@gmail.com', password='testpassword', image_file='default.jpg')
 
 
 frank_herbert = Author(name='Frank Herbert', country='USA')
@@ -29,16 +31,16 @@ speculative_fiction = Genre(name='Speculative Fiction')
 
 
 
-dune = Book(title='Dune', author=frank_herbert, published_year=1965, status='read', rating=5, genres=[science_fiction, fantasy], user_id=1)
-half_of_a_yellow_sun = Book(title='Half of a Yellow Sun', author=chimamanda_ngozi_adichie, published_year=2006, status='read', rating=4, genres=[literary_fiction, historical_fiction], user_id=1)
-norwegian_wood = Book(title='Norwegian Wood', author=haruki_murakami, published_year=1987, status='read', rating=4, genres=[literary_fiction, psychological_fiction], user_id=1)
-one_hundred_years_of_solitude = Book(title='One Hundred Years of Solitude', author=gabriel_garcia_marquez, published_year=1967, status='read', rating=5, genres=[magical_realism, literary_fiction], user_id=1)
-the_left_hand_of_darkness = Book(title='The Left Hand of Darkness', author=ursula_k_le_guin, published_year=1969, status='read', rating=4, genres=[science_fiction, fantasy], user_id=1)
-crime_and_punishment = Book(title='Crime and Punishment', author=dostoevsky, published_year=1866, status='read', rating=5, genres=[psychological_fiction, literary_fiction], user_id=1)
-beloved = Book(title='Beloved', author=toni_morrison, published_year=1987, status='read', rating=5, genres=[historical_fiction, literary_fiction], user_id=1)
-never_let_me_go = Book(title='Never Let Me Go', author=kazuo_ishiguro, published_year=2005, status='read', rating=4, genres=[dystopian, literary_fiction], user_id=1)
-the_fifth_season = Book(title='The Fifth Season', author=nk_jemisin, published_year=2015, status='read', rating=5, genres=[science_fiction, fantasy, speculative_fiction], user_id=1)
-things_fall_apart = Book(title='Things Fall Apart', author=chinua_achebe, published_year=1958, status='read', rating=5, genres=[postcolonial, historical_fiction], user_id=1)
+dune = Book(title='Dune', author=frank_herbert, published_year=1965, status='read', rating=5, genres=[science_fiction, fantasy], user=test_user)
+half_of_a_yellow_sun = Book(title='Half of a Yellow Sun', author=chimamanda_ngozi_adichie, published_year=2006, status='read', rating=4, genres=[literary_fiction, historical_fiction], user=test_user)
+norwegian_wood = Book(title='Norwegian Wood', author=haruki_murakami, published_year=1987, status='read', rating=4, genres=[literary_fiction, psychological_fiction], user=test_user)
+one_hundred_years_of_solitude = Book(title='One Hundred Years of Solitude', author=gabriel_garcia_marquez, published_year=1967, status='read', rating=5, genres=[magical_realism, literary_fiction], user=test_user)
+the_left_hand_of_darkness = Book(title='The Left Hand of Darkness', author=ursula_k_le_guin, published_year=1969, status='read', rating=4, genres=[science_fiction, fantasy], user=test_user)
+crime_and_punishment = Book(title='Crime and Punishment', author=dostoevsky, published_year=1866, status='read', rating=5, genres=[psychological_fiction, literary_fiction], user=test_user)
+beloved = Book(title='Beloved', author=toni_morrison, published_year=1987, status='read', rating=5, genres=[historical_fiction, literary_fiction], user=test_user)
+never_let_me_go = Book(title='Never Let Me Go', author=kazuo_ishiguro, published_year=2005, status='read', rating=4, genres=[dystopian, literary_fiction], user=test_user)
+the_fifth_season = Book(title='The Fifth Season', author=nk_jemisin, published_year=2015, status='read', rating=5, genres=[science_fiction, fantasy, speculative_fiction], user=test_user)
+things_fall_apart = Book(title='Things Fall Apart', author=chinua_achebe, published_year=1958, status='read', rating=5, genres=[postcolonial, historical_fiction], user=test_user)
 
 
 

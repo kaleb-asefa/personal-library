@@ -12,9 +12,16 @@ class User(Base):
     user_id : Mapped[int] = mapped_column(Integer, primary_key=True)
     username : Mapped[str] = mapped_column(String, unique=True, nullable=False)
     email : Mapped[str] = mapped_column(String, unique=True, nullable=False)
-    password : Mapped[str] = mapped_column(String, nullable=False)
+    password : Mapped[str | None] = mapped_column(String, nullable=True, default=None)
 
     books : Mapped[list['Book']] = relationship("Book", back_populates="user")
+    image_file : Mapped[str] = mapped_column(String, nullable=True)
+
+    @property
+    def image_path(self):
+        if self.image_file:
+            return f"/media/profile/{self.image_file}"
+        return f"/static/profile/default.jpg"
 
     def __repr__(self):
         return self.username
