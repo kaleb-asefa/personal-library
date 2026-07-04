@@ -3,59 +3,89 @@
 {% block title %}{{ book.title }} | Personal Library{% endblock %}
 
 {% block content %}
-    <section class="book-detail">
-        <div class="book-detail-cover cover-{{ (book.book_id % 5) + 1 }}">
-            <h1>{{ book.title }}</h1>
-        </div>
+    <section class="book-record">
+        <a class="back-link" href="/">
+            <i class="bi bi-arrow-left"></i>
+            Back to books
+        </a>
 
-        <div class="book-detail-panel">
-            <div>
-                <p class="eyebrow">Book details</p>
-                <h1>{{ book.title }}</h1>
-                <p class="page-lede">Saved in {{ book.user.username }}'s library.</p>
+        <div class="book-record-panel">
+            <div class="book-spine cover-{{ (book.book_id % 5) + 1 }}" aria-hidden="true">
+                <span>{{ book.title }}</span>
             </div>
 
-            <div class="detail-list">
-                <div>
-                    <span>Author</span>
-                    <strong>{{ book.author.name }}</strong>
+            <div class="book-record-main">
+                <div class="book-record-header">
+                    <div>
+                        <p class="eyebrow">Book details</p>
+                        <h1>{{ book.title }}</h1>
+                    </div>
+                    <span class="status-badge status-{{ book.status }}">
+                        {% if book.status == 'read' %}
+                            <i class="bi bi-check2-circle"></i>
+                        {% else %}
+                            <i class="bi bi-bookmark"></i>
+                        {% endif %}
+                        {{ book.status }}
+                    </span>
                 </div>
-                <div>
-                    <span>Owner</span>
-                    <strong><a href="/users/{{ book.user.user_id }}">{{ book.user.username }}</a></strong>
+
+                <div class="record-meta">
+                    <div>
+                        <span>Author</span>
+                        <strong>{{ book.author.name }}</strong>
+                    </div>
+                    <div>
+                        <span>Owner</span>
+                        <strong><a href="/users/{{ book.user.user_id }}">{{ book.user.username }}</a></strong>
+                    </div>
+                    <div>
+                        <span>Published</span>
+                        <strong>{{ book.published_year }}</strong>
+                    </div>
+                    <div>
+                        <span>Rating</span>
+                        <strong>
+                            {% if book.rating %}
+                                <span class="rating" aria-label="{{ book.rating }} out of 5 stars">
+                                    {% for star in range(1, 6) %}
+                                        {% if star <= book.rating %}
+                                            <i class="bi bi-star-fill"></i>
+                                        {% else %}
+                                            <i class="bi bi-star"></i>
+                                        {% endif %}
+                                    {% endfor %}
+                                </span>
+                            {% else %}
+                                Not rated
+                            {% endif %}
+                        </strong>
+                    </div>
                 </div>
-                <div>
-                    <span>Published</span>
-                    <strong>{{ book.published_year }}</strong>
-                </div>
-                <div>
-                    <span>Status</span>
-                    <strong class="text-capitalize">{{ book.status }}</strong>
-                </div>
-                <div>
-                    <span>Rating</span>
-                    <strong>{{ book.rating }} / 5</strong>
-                </div>
+
+                {% if book.genres %}
+                    <div class="record-section">
+                        <span>Genres</span>
+                        <div class="genre-list detail-genres" aria-label="Genres">
+                            {% for genre in book.genres %}
+                                <span class="genre-pill">{{ genre.name }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endif %}
             </div>
 
-            {% if book.genres %}
-                <div class="genre-list detail-genres" aria-label="Genres">
-                    {% for genre in book.genres %}
-                        <span class="genre-pill">{{ genre.name }}</span>
-                    {% endfor %}
-                </div>
-            {% endif %}
-
-            <div class="button-row detail-actions">
+            <aside class="record-actions" aria-label="Book actions">
+                <span>Manage</span>
                 <a class="btn btn-dark" href="/books/{{ book.book_id }}/edit">
                     <i class="bi bi-pencil-square"></i>
-                    Edit Book
+                    Edit
                 </a>
                 <button class="btn btn-outline-danger" type="button" data-api-delete="book" data-id="{{ book.book_id }}" data-redirect="/">
                     <i class="bi bi-trash3"></i>
                     Delete
                 </button>
-            </div>
+            </aside>
         </div>
     </section>
 {% endblock %}
