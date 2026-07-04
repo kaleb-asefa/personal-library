@@ -349,6 +349,13 @@ a {
     border-top: 1px solid var(--line);
 }
 
+.tile-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 12px;
+}
+
 .status-badge {
     display: inline-flex;
     align-items: center;
@@ -432,6 +439,12 @@ a {
     align-items: center;
     justify-content: space-between;
     gap: 12px;
+}
+
+.icon-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .icon-link {
@@ -528,6 +541,12 @@ a {
 
 .submit-button {
     min-height: 46px;
+}
+
+.button-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
 }
 
 .form-alert {
@@ -674,7 +693,8 @@ a {
 
     .stat-chip,
     .form-row,
-    .stats-grid {
+    .stats-grid,
+    .button-row {
         width: 100%;
         grid-template-columns: 1fr;
     }

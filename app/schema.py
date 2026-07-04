@@ -54,6 +54,7 @@ class booksCreate(BaseModel):
 class booksUpdate(BaseModel):
     title: str | None = Field(default=None, min_length=1, max_length=255)
     author_id: int | None = None
+    user_id: int | None = None
     published_year: int | None = None
     status: str | None = Field(default=None, min_length=1, max_length=255)
     rating: int | None = Field(default=None, ge=0, le=5)

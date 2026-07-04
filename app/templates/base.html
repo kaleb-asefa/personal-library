@@ -28,7 +28,7 @@
         </a>
 
         <div class="nav-actions">
-            <a data-nav-link class="nav-link-pill {{ 'is-active' if active_path == '/' else '' }}" href="/" {% if active_path == '/' %}aria-current="page"{% endif %}>
+            <a data-nav-link class="nav-link-pill {{ 'is-active' if active_path == '/' or (active_path.startswith('/books/') and active_path != '/books/new') else '' }}" href="/" {% if active_path == '/' or (active_path.startswith('/books/') and active_path != '/books/new') %}aria-current="page"{% endif %}>
                 <i class="bi bi-grid"></i>
                 <span>Books</span>
             </a>

@@ -55,5 +55,16 @@
                 <span class="text-secondary small fw-semibold">Not rated</span>
             {% endif %}
         </div>
+
+        <div class="tile-actions">
+            <a class="btn btn-sm btn-outline-dark" href="/books/{{ book.book_id }}/edit">
+                <i class="bi bi-pencil-square"></i>
+                Edit
+            </a>
+            <button class="btn btn-sm btn-outline-danger" type="button" data-api-delete="book" data-id="{{ book.book_id }}" data-redirect="{{ request.url.path }}">
+                <i class="bi bi-trash3"></i>
+                Delete
+            </button>
+        </div>
     </div>
 </article>

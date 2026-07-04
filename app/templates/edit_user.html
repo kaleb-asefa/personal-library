@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Edit {{ user.username }} | Personal Library{% endblock %}
+
+{% block content %}
+    <section class="form-layout">
+        <div class="form-intro">
+            <p class="eyebrow">Readers</p>
+            <h1>Edit user</h1>
+            <p class="page-lede">Update profile details for {{ user.username }}.</p>
+        </div>
+
+        <form class="action-form" data-api-form="update-user" data-user-id="{{ user.user_id }}" hx-boost="false">
+            <div class="form-alert" data-form-message hidden></div>
+
+            <label class="field-group">
+                <span>Username</span>
+                <input class="form-control" name="username" type="text" maxlength="255" value="{{ user.username }}" required>
+            </label>
+
+            <label class="field-group">
+                <span>Email</span>
+                <input class="form-control" name="email" type="email" maxlength="255" value="{{ user.email }}" required>
+            </label>
+
+            <label class="field-group">
+                <span>Password</span>
+                <input class="form-control" name="password" type="password" autocomplete="new-password">
+            </label>
+
+            <label class="field-group">
+                <span>Image file</span>
+                <input class="form-control" name="image_file" type="text" value="{{ user.image_file or '' }}">
+            </label>
+
+            <div class="button-row">
+                <button class="btn btn-dark submit-button" type="submit">
+                    <i class="bi bi-check2"></i>
+                    Save User
+                </button>
+                <button class="btn btn-outline-danger submit-button" type="button" data-api-delete="user" data-id="{{ user.user_id }}" data-redirect="/users">
+                    <i class="bi bi-trash3"></i>
+                    Delete
+                </button>
+            </div>
+        </form>
+    </section>
+{% endblock %}

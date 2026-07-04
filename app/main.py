@@ -41,6 +41,13 @@ def users_page(request: Request, db: Session = Depends(get_db)):
 def create_user_page(request: Request):
     return templates.TemplateResponse(request, "create_user.html")
 
+@app.get("/users/{user_id}/edit", response_class=HTMLResponse, include_in_schema=False)
+def edit_user_page(user_id: int, request: Request, db: Session = Depends(get_db)):
+    user = db.execute(select(User).where(User.user_id == user_id)).scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    return templates.TemplateResponse(request, "edit_user.html", {"user": user})
+
 @app.get("/users/{user_id}", response_class=HTMLResponse, include_in_schema=False)
 def user_detail_page(user_id: int, request: Request, db: Session = Depends(get_db)):
     user = db.execute(
@@ -77,6 +84,32 @@ def add_book_page(request: Request, db: Session = Depends(get_db)):
         request,
         "add_book.html",
         {"authors": authors, "genres": genres, "users": users},
+    )
+
+@app.get("/books/{book_id}/edit", response_class=HTMLResponse, include_in_schema=False)
+def edit_book_page(book_id: int, request: Request, db: Session = Depends(get_db)):
+    book = db.execute(
+        select(Book)
+        .where(Book.book_id == book_id)
+        .options(joinedload(Book.author), joinedload(Book.genres), joinedload(Book.user))
+    ).unique().scalar_one_or_none()
+    if not book:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found")
+    
+    authors = db.execute(select(Author).order_by(Author.name)).scalars().all()
+    genres = db.execute(select(Genre).order_by(Genre.name)).scalars().all()
+    users = db.execute(select(User).order_by(User.username)).scalars().all()
+    selected_genre_ids = {genre.genre_id for genre in book.genres}
+    return templates.TemplateResponse(
+        request,
+        "edit_book.html",
+        {
+            "book": book,
+            "authors": authors,
+            "genres": genres,
+            "users": users,
+            "selected_genre_ids": selected_genre_ids,
+        },
     )
 
 
@@ -219,13 +252,19 @@ def update_book_partial(book_id: int, book_update: booksUpdate, db: Session = De
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Author not found")
         book.author = author
 
+    if 'user_id' in updated_data:
+        user = db.execute(select(User).where(User.user_id == updated_data['user_id'])).scalar_one_or_none()
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        book.user = user
+
     if 'genre_ids' in updated_data:
         genres = db.execute(select(Genre).where(Genre.genre_id.in_(updated_data['genre_ids']))).scalars().all()
         if len(genres) != len(updated_data['genre_ids']):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="One or more genres not found")
         book.genres = genres
     for key, value in updated_data.items():
-        if key not in ['author_id', 'genre_ids']:
+        if key not in ['author_id', 'user_id', 'genre_ids']:
             setattr(book, key, value)
     db.commit()
     db.refresh(book)

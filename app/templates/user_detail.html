@@ -14,6 +14,10 @@
             <p>{{ user.email }}</p>
         </div>
         <div class="profile-actions">
+            <a class="btn btn-outline-dark" href="/users/{{ user.user_id }}/edit">
+                <i class="bi bi-pencil-square"></i>
+                Edit
+            </a>
             <a class="btn btn-outline-dark" href="/users/{{ user.user_id }}/books">
                 <i class="bi bi-book"></i>
                 Books
@@ -22,6 +26,10 @@
                 <i class="bi bi-plus-lg"></i>
                 Add Book
             </a>
+            <button class="btn btn-outline-danger" type="button" data-api-delete="user" data-id="{{ user.user_id }}" data-redirect="/users">
+                <i class="bi bi-trash3"></i>
+                Delete
+            </button>
         </div>
     </section>
 

@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}Edit {{ book.title }} | Personal Library{% endblock %}
+
+{% block content %}
+    <section class="form-layout form-layout-wide">
+        <div class="form-intro">
+            <p class="eyebrow">Books</p>
+            <h1>Edit book</h1>
+            <p class="page-lede">Update the catalog details, reading status, rating, owner, and genres.</p>
+        </div>
+
+        <form class="action-form" data-api-form="update-book" data-book-id="{{ book.book_id }}" hx-boost="false">
+            <div class="form-alert" data-form-message hidden></div>
+
+            <label class="field-group">
+                <span>Title</span>
+                <input class="form-control" name="title" type="text" maxlength="255" value="{{ book.title }}" required>
+            </label>
+
+            <div class="form-row">
+                <label class="field-group">
+                    <span>User</span>
+                    <select class="form-select" name="user_id" required>
+                        {% for user in users %}
+                            <option value="{{ user.user_id }}" {% if user.user_id == book.user_id %}selected{% endif %}>{{ user.username }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+
+                <label class="field-group">
+                    <span>Author</span>
+                    <select class="form-select" name="author_id" required>
+                        {% for author in authors %}
+                            <option value="{{ author.author_id }}" {% if author.author_id == book.author_id %}selected{% endif %}>{{ author.name }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+            </div>
+
+            <div class="form-row">
+                <label class="field-group">
+                    <span>Published year</span>
+                    <input class="form-control" name="published_year" type="number" min="0" max="3000" value="{{ book.published_year }}" required>
+                </label>
+
+                <label class="field-group">
+                    <span>Status</span>
+                    <select class="form-select" name="status" required>
+                        <option value="unread" {% if book.status == 'unread' %}selected{% endif %}>Unread</option>
+                        <option value="read" {% if book.status == 'read' %}selected{% endif %}>Read</option>
+                    </select>
+                </label>
+            </div>
+
+            <label class="field-group">
+                <span>Rating</span>
+                <select class="form-select" name="rating" required>
+                    {% for rating in range(0, 6) %}
+                        <option value="{{ rating }}" {% if rating == book.rating %}selected{% endif %}>{{ rating }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+
+            <fieldset class="field-group genre-picker">
+                <legend>Genres</legend>
+                <div class="checkbox-grid">
+                    {% for genre in genres %}
+                        <label>
+                            <input type="checkbox" name="genre_ids" value="{{ genre.genre_id }}" {% if genre.genre_id in selected_genre_ids %}checked{% endif %}>
+                            <span>{{ genre.name }}</span>
+                        </label>
+                    {% endfor %}
+                </div>
+            </fieldset>
+
+            <div class="button-row">
+                <button class="btn btn-dark submit-button" type="submit">
+                    <i class="bi bi-check2"></i>
+                    Save Book
+                </button>
+                <button class="btn btn-outline-danger submit-button" type="button" data-api-delete="book" data-id="{{ book.book_id }}" data-redirect="/users/{{ book.user_id }}/books">
+                    <i class="bi bi-trash3"></i>
+                    Delete
+                </button>
+            </div>
+        </form>
+    </section>
+{% endblock %}
