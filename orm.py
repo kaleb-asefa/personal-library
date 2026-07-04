@@ -14,8 +14,8 @@ class User(Base):
     email : Mapped[str] = mapped_column(String, unique=True, nullable=False)
     password : Mapped[str | None] = mapped_column(String, nullable=True, default=None)
 
-    books : Mapped[list['Book']] = relationship("Book", back_populates="user")
-    image_file : Mapped[str] = mapped_column(String, nullable=True)
+    books : Mapped[list['Book']] = relationship("Book", back_populates="user", cascade="all, delete-orphan")
+    image_file : Mapped[str | None] = mapped_column(String, nullable=True)
 
     @property
     def image_path(self):
@@ -27,18 +27,18 @@ class User(Base):
         return self.username
 
 books_genres = Table('books_genres', Base.metadata,
-    Column('book_id', Integer, ForeignKey('books.book_id')),
-    Column('genre_id', Integer, ForeignKey('genres.genre_id')))
+    Column('book_id', Integer, ForeignKey('books.book_id'), primary_key=True),
+    Column('genre_id', Integer, ForeignKey('genres.genre_id'), primary_key=True))
 
 class Book(Base):
     __tablename__ = 'books'
-    book_id : Mapped[int] = mapped_column(Integer, primary_key=True)
+    book_id : Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     title : Mapped[str] = mapped_column(String)
-    author_id : Mapped[int] = mapped_column(Integer, ForeignKey('authors.author_id'))
+    author_id : Mapped[int] = mapped_column(Integer, ForeignKey('authors.author_id'), index=True)
     published_year : Mapped[int] = mapped_column(Integer)
     status : Mapped[str] = mapped_column(Enum('read', 'unread', name='status_enum'), default='unread')
     rating : Mapped[int] = mapped_column(Integer, CheckConstraint('rating >= 0 AND rating <= 5'), default=0)
-    user_id : Mapped[int] = mapped_column(Integer, ForeignKey('users.user_id'))
+    user_id : Mapped[int] = mapped_column(Integer, ForeignKey('users.user_id'), index=True)
 
     author = relationship("Author", back_populates="books")
     genres = relationship("Genre", secondary='books_genres', back_populates="books")
