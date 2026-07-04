@@ -86,6 +86,17 @@ def add_book_page(request: Request, db: Session = Depends(get_db)):
         {"authors": authors, "genres": genres, "users": users},
     )
 
+@app.get("/books/{book_id}", response_class=HTMLResponse, include_in_schema=False)
+def book_detail_page(book_id: int, request: Request, db: Session = Depends(get_db)):
+    book = db.execute(
+        select(Book)
+        .where(Book.book_id == book_id)
+        .options(joinedload(Book.author), joinedload(Book.genres), joinedload(Book.user))
+    ).unique().scalar_one_or_none()
+    if not book:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found")
+    return templates.TemplateResponse(request, "book_detail.html", {"book": book})
+
 @app.get("/books/{book_id}/edit", response_class=HTMLResponse, include_in_schema=False)
 def edit_book_page(book_id: int, request: Request, db: Session = Depends(get_db)):
     book = db.execute(

@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}{{ book.title }} | Personal Library{% endblock %}
+
+{% block content %}
+    <section class="book-detail">
+        <div class="book-detail-cover cover-{{ (book.book_id % 5) + 1 }}">
+            <h1>{{ book.title }}</h1>
+        </div>
+
+        <div class="book-detail-panel">
+            <div>
+                <p class="eyebrow">Book details</p>
+                <h1>{{ book.title }}</h1>
+                <p class="page-lede">Saved in {{ book.user.username }}'s library.</p>
+            </div>
+
+            <div class="detail-list">
+                <div>
+                    <span>Author</span>
+                    <strong>{{ book.author.name }}</strong>
+                </div>
+                <div>
+                    <span>Owner</span>
+                    <strong><a href="/users/{{ book.user.user_id }}">{{ book.user.username }}</a></strong>
+                </div>
+                <div>
+                    <span>Published</span>
+                    <strong>{{ book.published_year }}</strong>
+                </div>
+                <div>
+                    <span>Status</span>
+                    <strong class="text-capitalize">{{ book.status }}</strong>
+                </div>
+                <div>
+                    <span>Rating</span>
+                    <strong>{{ book.rating }} / 5</strong>
+                </div>
+            </div>
+
+            {% if book.genres %}
+                <div class="genre-list detail-genres" aria-label="Genres">
+                    {% for genre in book.genres %}
+                        <span class="genre-pill">{{ genre.name }}</span>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <div class="button-row detail-actions">
+                <a class="btn btn-dark" href="/books/{{ book.book_id }}/edit">
+                    <i class="bi bi-pencil-square"></i>
+                    Edit Book
+                </a>
+                <button class="btn btn-outline-danger" type="button" data-api-delete="book" data-id="{{ book.book_id }}" data-redirect="/">
+                    <i class="bi bi-trash3"></i>
+                    Delete
+                </button>
+            </div>
+        </div>
+    </section>
+{% endblock %}
