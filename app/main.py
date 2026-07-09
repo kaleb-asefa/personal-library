@@ -2,24 +2,35 @@ from fastapi import FastAPI, Request, HTTPException, status, Depends
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from fastapi.exception_handlers import http_exception_handler, request_validation_exception_handler
 
 from typing import Annotated
 
 from sqlalchemy import select
-from sqlalchemy.orm import joinedload, Session
-from ..orm import Book, Author, Genre, get_db, User
-from ..queries import get_all_books, mark_book_as_read, get_books_by_genre, get_books_by_author, top_rated_books
+from sqlalchemy.orm import joinedload, selectinload, Session
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from ..orm import Book, Author, Genre, get_db, User, Base, engine, AsyncSessionLocal
 
 from .schema import UserCreate, UserResponse, booksResponse, booksCreate, booksUpdate, UserUpdate
 
 from pathlib import Path
+from contextlib import asynccontextmanager
 
 BASE_DIR = Path(__file__).parent  # goes up from app/ to project root
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup code
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    yield
+    # Shutdown code
+    await engine.dispose()
 
+app = FastAPI(lifespan=lifespan)
 
 templates = Jinja2Templates(directory=BASE_DIR / 'templates')
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
@@ -28,13 +39,15 @@ app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 
 
 @app.get("/", include_in_schema=False, response_class=HTMLResponse)
-def home(request: Request, db: Session = Depends(get_db)):
-    books = db.execute(select(Book).options(joinedload(Book.author), joinedload(Book.genres), joinedload(Book.user))).scalars().unique().all()
+async def home(request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
+    books = await db.execute(select(Book).options(selectinload(Book.author), selectinload(Book.genres), selectinload(Book.user)))
+    books = books.scalars().unique().all()
     return templates.TemplateResponse(request, "index.html", {'books': books})
 
 @app.get("/users", response_class=HTMLResponse, include_in_schema=False)
-def users_page(request: Request, db: Session = Depends(get_db)):
-    users = db.execute(select(User).options(joinedload(User.books))).scalars().unique().all()
+async def users_page(request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
+    users = await db.execute(select(User).options(selectinload(User.books)))
+    users = users.scalars().unique().all()
     return templates.TemplateResponse(request, "users.html", {"users": users})
 
 @app.get("/users/new", response_class=HTMLResponse, include_in_schema=False)
@@ -42,41 +55,46 @@ def create_user_page(request: Request):
     return templates.TemplateResponse(request, "create_user.html")
 
 @app.get("/users/{user_id}/edit", response_class=HTMLResponse, include_in_schema=False)
-def edit_user_page(user_id: int, request: Request, db: Session = Depends(get_db)):
-    user = db.execute(select(User).where(User.user_id == user_id)).scalar_one_or_none()
+async def edit_user_page(user_id: int, request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
+    user = await db.execute(select(User).where(User.user_id == user_id))
+    user = user.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     return templates.TemplateResponse(request, "edit_user.html", {"user": user})
 
 @app.get("/users/{user_id}", response_class=HTMLResponse, include_in_schema=False)
-def user_detail_page(user_id: int, request: Request, db: Session = Depends(get_db)):
-    user = db.execute(
+async def user_detail_page(user_id: int, request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
+    user = await db.execute(
         select(User)
         .where(User.user_id == user_id)
         .options(
             joinedload(User.books).joinedload(Book.author),
-            joinedload(User.books).joinedload(Book.genres),
+            joinedload(User.books).selectinload(Book.genres),
+            joinedload(User.books).joinedload(Book.user)
         )
-    ).unique().scalar_one_or_none()
+    )
+    user = user.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     return templates.TemplateResponse(request, "user_detail.html", {"user": user, "books": user.books})
 
 @app.get("/users/{user_id}/books", response_class=HTMLResponse, include_in_schema=False)
-def user_books_page(user_id: int, request: Request, db: Session = Depends(get_db)):
-    user = db.execute(select(User).where(User.user_id == user_id)).scalar_one_or_none()
+async def user_books_page(user_id: int, request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
+    user = await db.execute(select(User).where(User.user_id == user_id))
+    user = user.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     
-    books = db.execute(
+    books = await db.execute(
         select(Book)
         .where(Book.user_id == user_id)
         .options(joinedload(Book.author), joinedload(Book.genres), joinedload(Book.user))
-    ).scalars().unique().all()
+    )
+    books = books.scalars().unique().all()
     return templates.TemplateResponse(request, "user_books.html", {"user": user, "books": books})
 
 @app.get("/books/new", response_class=HTMLResponse, include_in_schema=False)
-def add_book_page(request: Request, db: Session = Depends(get_db)):
+async def add_book_page(request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
     authors = db.execute(select(Author).order_by(Author.name)).scalars().all()
     genres = db.execute(select(Genre).order_by(Genre.name)).scalars().all()
     users = db.execute(select(User).order_by(User.username)).scalars().all()
@@ -87,29 +105,34 @@ def add_book_page(request: Request, db: Session = Depends(get_db)):
     )
 
 @app.get("/books/{book_id}", response_class=HTMLResponse, include_in_schema=False)
-def book_detail_page(book_id: int, request: Request, db: Session = Depends(get_db)):
-    book = db.execute(
+async def book_detail_page(book_id: int, request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
+    book = await db.execute(
         select(Book)
         .where(Book.book_id == book_id)
         .options(joinedload(Book.author), joinedload(Book.genres), joinedload(Book.user))
-    ).unique().scalar_one_or_none()
+    )
+    book = book.unique().scalar_one_or_none()
     if not book:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found")
     return templates.TemplateResponse(request, "book_detail.html", {"book": book})
 
 @app.get("/books/{book_id}/edit", response_class=HTMLResponse, include_in_schema=False)
-def edit_book_page(book_id: int, request: Request, db: Session = Depends(get_db)):
-    book = db.execute(
+async def edit_book_page(book_id: int, request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
+    book = await db.execute(
         select(Book)
         .where(Book.book_id == book_id)
         .options(joinedload(Book.author), joinedload(Book.genres), joinedload(Book.user))
-    ).unique().scalar_one_or_none()
+    )
+    book = book.unique().scalar_one_or_none()
     if not book:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found")
     
-    authors = db.execute(select(Author).order_by(Author.name)).scalars().all()
-    genres = db.execute(select(Genre).order_by(Genre.name)).scalars().all()
-    users = db.execute(select(User).order_by(User.username)).scalars().all()
+    authors = await db.execute(select(Author).order_by(Author.name))
+    authors = authors.scalars().all()
+    genres = await db.execute(select(Genre).order_by(Genre.name))
+    genres = genres.scalars().all()
+    users = await db.execute(select(User).order_by(User.username))
+    users = users.scalars().all()
     selected_genre_ids = {genre.genre_id for genre in book.genres}
     return templates.TemplateResponse(
         request,
@@ -126,31 +149,35 @@ def edit_book_page(book_id: int, request: Request, db: Session = Depends(get_db)
 
 
 @app.post("/api/users", response_model=UserResponse)
-def create_user(user: UserCreate, db: Session = Depends(get_db)):
-    result = db.execute(select(User).where(User.username == user.username)).first()
+async def create_user(user: UserCreate, db: Annotated[AsyncSession, Depends(get_db)]):
+    result = await db.execute(select(User).where(User.username == user.username))
+    result = result.first()
     if result:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Username already exists")
     
-    result = db.execute(select(User).where(User.email == user.email)).first()
+    result = await db.execute(select(User).where(User.email == user.email))
+    result = result.first()
     if result:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already exists")
     
     new_user = User(username=user.username, email=user.email, password=user.password)
     db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
+    await db.commit()
+    await db.refresh(new_user, attribute_names=['username', 'email', 'password'])
     return new_user
 
 @app.get("/api/users/{user_id}", response_model=UserResponse)
-def get_user(user_id: int, db: Session = Depends(get_db)):
-    user = db.execute(select(User).where(User.user_id == user_id)).scalar_one_or_none()
+async def get_user(user_id: int, db: Annotated[AsyncSession, Depends(get_db)]):
+    user = await db.execute(select(User).where(User.user_id == user_id))
+    user = user.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     return user
 
 @app.get("/api/users/{user_id}/books", response_model=list[booksResponse])
-def get_user_books(user_id: int, db: Session = Depends(get_db)):
-    user = db.execute(select(User).where(User.user_id == user_id)).scalar_one_or_none()
+async def get_user_books(user_id: int, db: Annotated[AsyncSession, Depends(get_db)]):
+    user = await db.execute(select(User).where(User.user_id == user_id))
+    user = user.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     
@@ -158,40 +185,47 @@ def get_user_books(user_id: int, db: Session = Depends(get_db)):
     return books
 
 @app.patch("/api/users/{user_id}", response_model=UserResponse)
-def update_user(user_id: int, user_update: UserUpdate, db: Session = Depends(get_db)):
-    user = db.execute(select(User).where(User.user_id == user_id)).scalar_one_or_none()
+async def update_user(user_id: int, user_update: UserUpdate, db: Annotated[AsyncSession, Depends(get_db)]):
+    user = await db.execute(select(User).where(User.user_id == user_id))
+    user = user.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     updated_data = user_update.model_dump(exclude_unset=True)
     for key, value in updated_data.items():
         setattr(user, key, value)
-    db.commit()
-    db.refresh(user)
+    await db.commit()
+    await db.refresh(user, attribute_names=['username', 'email', 'password'])
     return user
 
 @app.delete("/api/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_user(user_id: int, db: Session = Depends(get_db)):
-    user = db.execute(select(User).where(User.user_id == user_id)).scalar_one_or_none()
+async def delete_user(user_id: int, db: Annotated[AsyncSession, Depends(get_db)]):
+    user = await db.execute(select(User).where(User.user_id == user_id))
+    user = user.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-    db.delete(user)
-    db.commit()
+    await db.delete(user)
+    await db.commit()
 
 @app.get('/api/books', response_model=list[booksResponse])
-def api_books(db : Annotated[Session, Depends(get_db)]):
-    return get_all_books(db)
+async def api_books(db : Annotated[AsyncSession, Depends(get_db)]):
+    books = await db.execute(select(Book).options(joinedload(Book.author), selectinload(Book.genres), joinedload(Book.user)))
+    books = books.scalars().unique().all()
+    return books
 
 @app.post('/api/books', response_model=booksResponse)
-def api_create_book(book: booksCreate, db: Session = Depends(get_db)):
-    author = db.execute(select(Author).where(Author.author_id == book.author_id)).scalar_one_or_none()
+async def api_create_book(book: booksCreate, db: Annotated[AsyncSession, Depends(get_db)]):
+    author = await db.execute(select(Author).where(Author.author_id == book.author_id))
+    author = author.scalar_one_or_none()
     if not author:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Author not found")
     
-    user = db.execute(select(User).where(User.user_id == book.user_id)).scalar_one_or_none()
+    user = await db.execute(select(User).where(User.user_id == book.user_id))
+    user = user.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     
-    genres = db.execute(select(Genre).where(Genre.genre_id.in_(book.genre_ids))).scalars().all()
+    genres = db.execute(select(Genre).where(Genre.genre_id.in_(book.genre_ids)))
+    genres = genres.scalars().all()
     if len(genres) != len(book.genre_ids):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="One or more genres not found")
     
@@ -206,36 +240,42 @@ def api_create_book(book: booksCreate, db: Session = Depends(get_db)):
     )
     
     db.add(new_book)
-    db.commit()
-    db.refresh(new_book)
+    await db.commit()
+    await db.refresh(new_book, attribute_names=['author', 'user', 'genres'])
     
     return new_book
 
 @app.get('/api/books/{book_id}', response_model=booksResponse)
-def api_book_detail(book_id: int, db: Session = Depends(get_db)):
-    book = db.execute(select(Book).where(
+async def api_book_detail(book_id: int, db: Annotated[AsyncSession, Depends(get_db)]):
+    book = await db.execute(select(Book).where(
         Book.book_id == book_id).options(
             joinedload(Book.author), 
-            joinedload(Book.genres))).unique().scalar_one_or_none()
+            selectinload(Book.genres),
+            joinedload(Book.user)))
+    book = book.scalar_one_or_none()
     if book:
         return book
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found")
 
 @app.put('/api/books/{book_id}', response_model=booksResponse)
-def update_book_full(book_id: int, book_update: booksCreate, db: Session = Depends(get_db)):
-    book = db.execute(select(Book).where(Book.book_id == book_id)).scalar_one_or_none()
+async def update_book_full(book_id: int, book_update: booksCreate, db: Annotated[AsyncSession, Depends(get_db)]):
+    book = await db.execute(select(Book).where(Book.book_id == book_id))
+    book = book.scalar_one_or_none()
     if not book:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found")
     
-    author = db.execute(select(Author).where(Author.author_id == book_update.author_id)).scalar_one_or_none()
+    author = await db.execute(select(Author).where(Author.author_id == book_update.author_id))
+    author = author.scalar_one_or_none()
     if not author:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Author not found")
     
-    user = db.execute(select(User).where(User.user_id == book_update.user_id)).scalar_one_or_none()
+    user = await db.execute(select(User).where(User.user_id == book_update.user_id))
+    user = user.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     
-    genres = db.execute(select(Genre).where(Genre.genre_id.in_(book_update.genre_ids))).scalars().all()
+    genres = await db.execute(select(Genre).where(Genre.genre_id.in_(book_update.genre_ids)))
+    genres = genres.scalars().all()
     if len(genres) != len(book_update.genre_ids):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="One or more genres not found")
     
@@ -245,45 +285,50 @@ def update_book_full(book_id: int, book_update: booksCreate, db: Session = Depen
     book.user = user
     book.genres = genres
     
-    db.commit()
-    db.refresh(book)
+    await db.commit()
+    await db.refresh(book, attribute_names=['author', 'user', 'genres'])
     
     return book
 
 @app.patch('/api/books/{book_id}', response_model=booksResponse)
-def update_book_partial(book_id: int, book_update: booksUpdate, db: Session = Depends(get_db)):
-    book = db.execute(select(Book).where(Book.book_id == book_id)).scalar_one_or_none()
+async def update_book_partial(book_id: int, book_update: booksUpdate, db: Annotated[AsyncSession, Depends(get_db)]):
+    book = await db.execute(select(Book).where(Book.book_id == book_id).options(joinedload(Book.author), selectinload(Book.genres), joinedload(Book.user)))
+    book = book.scalar_one_or_none()
     if not book:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found")
     updated_data = book_update.model_dump(exclude_unset=True)
 
     if 'author_id' in updated_data:
-        author = db.execute(select(Author).where(Author.author_id == updated_data['author_id'])).scalar_one_or_none()
+        author = await db.execute(select(Author).where(Author.author_id == updated_data['author_id']))
+        author = author.scalar_one_or_none()
         if not author:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Author not found")
         book.author = author
 
     if 'user_id' in updated_data:
-        user = db.execute(select(User).where(User.user_id == updated_data['user_id'])).scalar_one_or_none()
+        user = await db.execute(select(User).where(User.user_id == updated_data['user_id']))
+        user = user.scalar_one_or_none()
         if not user:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
         book.user = user
 
     if 'genre_ids' in updated_data:
-        genres = db.execute(select(Genre).where(Genre.genre_id.in_(updated_data['genre_ids']))).scalars().all()
+        genres = await db.execute(select(Genre).where(Genre.genre_id.in_(updated_data['genre_ids'])))
+        genres = genres.scalars().all()
         if len(genres) != len(updated_data['genre_ids']):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="One or more genres not found")
         book.genres = genres
     for key, value in updated_data.items():
         if key not in ['author_id', 'user_id', 'genre_ids']:
             setattr(book, key, value)
-    db.commit()
-    db.refresh(book)
+    await db.commit()
+    await db.refresh(book, attribute_names=['author', 'user', 'genres'])
     return book
 
 @app.delete('/api/books/{book_id}', status_code=status.HTTP_204_NO_CONTENT)
-def delete_book(book_id: int, db: Session = Depends(get_db)):
-    book = db.execute(select(Book).where(Book.book_id == book_id)).scalar_one_or_none()
+async def delete_book(book_id: int, db: Annotated[AsyncSession, Depends(get_db)]):
+    book = await db.execute(select(Book).where(Book.book_id == book_id))
+    book = book.scalar_one_or_none()
     if not book:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found")
     db.delete(book)
@@ -291,15 +336,9 @@ def delete_book(book_id: int, db: Session = Depends(get_db)):
 
     
 @app.exception_handler(StarletteHTTPException)
-def http_exception_handler(request: Request, exc: StarletteHTTPException):
-    return JSONResponse(
-        status_code=exc.status_code,
-        content={"message": exc.detail},
-    )
+async def general_http_exception_handler(request: Request, exc: StarletteHTTPException):
+    return await http_exception_handler(request, exc)
 
 @app.exception_handler(RequestValidationError)
-def validation_exception_handler(request: Request, exc: RequestValidationError):
-    return JSONResponse(
-        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        content={"message": "Validation error", "details": exc.errors() }
-    )
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    return await request_validation_exception_handler(request, exc)

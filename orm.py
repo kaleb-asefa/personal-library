@@ -2,7 +2,9 @@ from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, Table
 from sqlalchemy.orm import DeclarativeBase, relationship, sessionmaker, Mapped, mapped_column
 from contextlib import contextmanager
 
-engine = create_engine('sqlite:///library.db', echo=True)
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+
+engine = create_async_engine('sqlite+aiosqlite:///library.db', echo=True, future=True)
 
 class Base(DeclarativeBase):
     pass
@@ -70,19 +72,19 @@ class Genre(Base):
 
 
 
-Base.metadata.create_all(engine)
-
-SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 
 
-def get_db():
-    with SessionLocal() as db:
-        yield db
+AsyncSessionLocal = async_sessionmaker(bind=engine, expire_on_commit=False, class_=AsyncSession)
+
+
+async def get_db():
+    async with AsyncSessionLocal() as session:
+        yield session
 
  
 @contextmanager   
 def get_db_session():
-    db = SessionLocal()
+    db = AsyncSessionLocal()
     try:
         yield db
         db.commit()
