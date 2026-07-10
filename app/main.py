@@ -77,7 +77,7 @@ async def user_detail_page(user_id: int, request: Request, db: Annotated[AsyncSe
             joinedload(User.books).joinedload(Book.user)
         )
     )
-    user = user.scalar_one_or_none()
+    user = user.unique().scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     return templates.TemplateResponse(request, "user_detail.html", {"user": user, "books": user.books})
@@ -99,9 +99,12 @@ async def user_books_page(user_id: int, request: Request, db: Annotated[AsyncSes
 
 @app.get("/books/new", response_class=HTMLResponse, include_in_schema=False)
 async def add_book_page(request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
-    authors = db.execute(select(Author).order_by(Author.name)).scalars().all()
-    genres = db.execute(select(Genre).order_by(Genre.name)).scalars().all()
-    users = db.execute(select(User).order_by(User.username)).scalars().all()
+    authors = await db.execute(select(Author).order_by(Author.name))
+    authors = authors.scalars().all()
+    genres = await db.execute(select(Genre).order_by(Genre.name))
+    genres = genres.scalars().all()
+    users = await db.execute(select(User).order_by(User.username))
+    users = users.scalars().all()
     return templates.TemplateResponse(
         request,
         "add_book.html",
