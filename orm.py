@@ -14,7 +14,7 @@ class User(Base):
     user_id : Mapped[int] = mapped_column(Integer, primary_key=True)
     username : Mapped[str] = mapped_column(String, unique=True, nullable=False)
     email : Mapped[str] = mapped_column(String, unique=True, nullable=False)
-    password : Mapped[str | None] = mapped_column(String, nullable=True, default=None)
+    password_hash : Mapped[str] = mapped_column(String(200), nullable=False)
 
     books : Mapped[list['Book']] = relationship("Book", back_populates="user", cascade="all, delete-orphan")
     image_file : Mapped[str | None] = mapped_column(String, nullable=True)

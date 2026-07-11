@@ -2,16 +2,26 @@ from pydantic import BaseModel, Field, ConfigDict, EmailStr
 
 class UserBase(BaseModel):
     username: str = Field(min_length=1, max_length=255)
-    email: EmailStr = Field( max_length=255)
-
+    
 class UserCreate(UserBase):
-    password: str | None = None
+    email: EmailStr = Field( max_length=255)
+    password: str | None = Field(min_length=8)
 
-class UserResponse(UserBase):
+class publicUserResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     user_id: int
+    username: str
     image_file: str | None = None
     image_path: str | None = None  # This will be computed based on the image_file
+
+class privateUserResponse(publicUserResponse):
+    email: EmailStr
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
 
 class UserUpdate(BaseModel):
     username: str | None = Field(default=None, min_length=1, max_length=255)
