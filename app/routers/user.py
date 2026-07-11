@@ -28,10 +28,10 @@ async def create_user(user: UserCreate, db: Annotated[AsyncSession, Depends(get_
     if result:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already exists")
     
-    new_user = User(username=user.username, email=user.email.lower(), password=hash_password(user.password))
+    new_user = User(username=user.username, email=user.email.lower(), password_hash=hash_password(user.password))
     db.add(new_user)
     await db.commit()
-    await db.refresh(new_user, attribute_names=['username', 'email', 'password'])
+    await db.refresh(new_user, attribute_names=['username', 'email', 'password_hash', 'image_file'])
     return new_user
 
 
@@ -39,7 +39,7 @@ async def create_user(user: UserCreate, db: Annotated[AsyncSession, Depends(get_
 async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: Annotated[AsyncSession, Depends(get_db)]):
     result = await db.execute(select(User).where(func.lower(User.email) == form_data.username.lower()))
     user = result.scalar_one_or_none()
-    if not user or not verify_password(form_data.password, user.password):
+    if not user or not verify_password(form_data.password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
