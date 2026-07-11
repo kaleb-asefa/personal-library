@@ -3,24 +3,32 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from typing import Annotated
 from ...orm import User, get_db, Book
-from ..schema import UserCreate, UserResponse, booksResponse, UserUpdate
+from ..schema import UserCreate, booksResponse, UserUpdate, publicUserResponse, privateUserResponse
 from sqlalchemy.orm import joinedload
+from datetime import timedelta
+from fastapi.security import OAuth2PasswordRequestForm
+from sqlalchemy import func
+from ..auth import create_access_token, verify_access_token, hash_password, verify_password, oauth2_scheme
+from ..config import settings
+
+
+
 
 router = APIRouter()
 
-@router.post("", response_model=UserResponse)
+@router.post("", response_model=privateUserResponse, status_code=status.HTTP_201_CREATED)
 async def create_user(user: UserCreate, db: Annotated[AsyncSession, Depends(get_db)]):
-    result = await db.execute(select(User).where(User.username == user.username))
+    result = await db.execute(select(User).where(func.lower(User.username) == user.username.lower()))
     result = result.first()
     if result:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Username already exists")
     
-    result = await db.execute(select(User).where(User.email == user.email))
+    result = await db.execute(select(User).where(func.lower(User.email) == user.email.lower()))
     result = result.first()
     if result:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already exists")
     
-    new_user = User(username=user.username, email=user.email, password=user.password)
+    new_user = User(username=user.username, email=user.email, password_hash=hash_password(user.password))
     db.add(new_user)
     await db.commit()
     await db.refresh(new_user, attribute_names=['username', 'email', 'password'])
