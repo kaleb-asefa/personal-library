@@ -26,12 +26,9 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
     encoded_jwt = jwt.encode(to_encode, settings.secret_key.get_secret_value(), algorithm=settings.algorithm)
     return encoded_jwt
 
-def verify_access_token(token: str) -> int | None:
+def verify_access_token(token: str) -> str | None:
     try:
-        #return user_id from the token payload
         payload = jwt.decode(token, settings.secret_key.get_secret_value(), algorithms=[settings.algorithm])
-        
+        return payload.get("sub")
     except jwt.InvalidTokenError:
         return None
-    else:
-        return payload.get("sub")
