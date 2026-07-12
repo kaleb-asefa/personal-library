@@ -1,0 +1,28 @@
+{# Reusable bits used across pages. #}
+
+{# Render a star rating out of 5. #}
+{% macro stars(rating) %}
+<span class="stars" aria-label="{{ rating }} out of 5">
+    {% for i in range(1, 6) %}
+        {% if i <= rating %}<i class="bi bi-star-fill"></i>
+        {% else %}<i class="bi bi-star"></i>{% endif %}
+    {% endfor %}
+</span>
+{% endmacro %}
+
+{# Render a status pill. #}
+{% macro status_pill(status) %}
+{% set labels = {'unread': 'Up next', 'reading': 'Reading', 'read': 'Finished'} %}
+<span class="status-pill status-{{ status }}">{{ labels.get(status, status) }}</span>
+{% endmacro %}
+
+{# Map an auth ?error= code to a human message. #}
+{% macro error_message(code) %}
+{% if code == 'invalid' %}That email or password didn't match.
+{% elif code == 'username_taken' %}That username is already taken.
+{% elif code == 'email_taken' %}That email is already registered.
+{% elif code == 'short_password' %}Password must be at least 8 characters.
+{% elif code == 'wrong_password' %}Your current password is incorrect.
+{% elif code == 'required' %}Please fill in the required fields.
+{% endif %}
+{% endmacro %}

@@ -1,36 +1,41 @@
 {% extends "base.html" %}
+{% from "_macros.html" import stars, status_pill %}
 
-{% block title %}{{ book.title }} | Personal Library{% endblock %}
+{% block title %}{{ book.title }} · The Stacks{% endblock %}
 
 {% block content %}
-    <section class="book-record">
-        <a class="back-link" href="/">Back</a>
-        <div class="book-record-panel">
-            <div class="book-record-main">
-                <div class="book-record-header">
-                    <h1>{{ book.title }}</h1>
-                    <span class="status-badge status-{{ book.status }}">{{ book.status }}</span>
-                </div>
+<a class="back-link" href="/"><i class="bi bi-arrow-left"></i> Back to shelf</a>
 
-                <div class="record-meta">
-                    <div><span>Author</span><strong>{{ book.author.name }}</strong></div>
-                    <div><span>Year</span><strong>{{ book.published_year }}</strong></div>
-                    <div><span>Rating</span><strong>{{ book.rating }}/5</strong></div>
-                </div>
-
-                {% if book.genres %}
-                    <div class="genre-list detail-genres">
-                        {% for genre in book.genres %}
-                            <span class="genre-pill">{{ genre.name }}</span>
-                        {% endfor %}
-                    </div>
-                {% endif %}
-
-                <div class="record-actions compact-actions">
-                    <a class="btn btn-dark" href="/books/{{ book.book_id }}/edit">Edit</a>
-                    <button class="btn btn-outline-danger" type="button" data-api-delete="book" data-id="{{ book.book_id }}" data-redirect="/">Delete</button>
-                </div>
-            </div>
+<article class="book-detail">
+    <header class="book-detail-head">
+        <div>
+            <h1>{{ book.title }}</h1>
+            <p class="book-detail-author">by {{ book.author.name }}</p>
         </div>
-    </section>
+        {{ status_pill(book.status) }}
+    </header>
+
+    <dl class="book-meta">
+        <div><dt>Published</dt><dd>{{ book.published_year }}</dd></div>
+        <div><dt>Rating</dt><dd>{{ stars(book.rating) }}</dd></div>
+    </dl>
+
+    {% if book.genres %}
+    <div class="genre-tags">
+        {% for genre in book.genres %}
+        <span class="genre-tag">{{ genre.name }}</span>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if is_owner %}
+    <div class="book-detail-actions">
+        <a class="btn btn-primary" href="/books/{{ book.book_id }}/edit"><i class="bi bi-pencil"></i> Edit</a>
+        <form action="/books/{{ book.book_id }}/delete" method="post"
+              data-confirm="Delete &ldquo;{{ book.title }}&rdquo; from your shelf?">
+            <button type="submit" class="btn btn-danger"><i class="bi bi-trash3"></i> Delete</button>
+        </form>
+    </div>
+    {% endif %}
+</article>
 {% endblock %}

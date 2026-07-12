@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Edit' if mode == 'edit' else 'Add' }} book · The Stacks{% endblock %}
+
+{% block content %}
+<a class="back-link" href="{{ '/books/' ~ book.book_id if mode == 'edit' else '/' }}">
+    <i class="bi bi-arrow-left"></i> Back
+</a>
+
+<section class="form-card">
+    <header class="form-head">
+        <h1>{{ 'Edit' if mode == 'edit' else 'Add a' }} book</h1>
+    </header>
+
+    <form action="{{ '/books/' ~ book.book_id ~ '/edit' if mode == 'edit' else '/books/new' }}"
+          method="post">
+
+        <label class="field">
+            <span>Title</span>
+            <input type="text" name="title" maxlength="255" required
+                   value="{{ book.title if mode == 'edit' else '' }}">
+        </label>
+
+        <label class="field">
+            <span>Author</span>
+            <input type="text" name="author_name" maxlength="255" required
+                   value="{{ book.author.name if mode == 'edit' else '' }}">
+        </label>
+
+        <label class="field">
+            <span>Published year</span>
+            <input type="number" name="published_year" min="0" max="3000" required
+                   value="{{ book.published_year if mode == 'edit' else '' }}">
+        </label>
+
+        <label class="field">
+            <span>Status</span>
+            <select name="status">
+                <option value="unread" {{ 'selected' if (mode != 'edit') or book.status == 'unread' else '' }}>Up next</option>
+                <option value="reading" {{ 'selected' if mode == 'edit' and book.status == 'reading' else '' }}>Currently reading</option>
+                <option value="read" {{ 'selected' if mode == 'edit' and book.status == 'read' else '' }}>Finished</option>
+            </select>
+        </label>
+
+        {% if mode == 'edit' %}
+        <label class="field">
+            <span>Rating</span>
+            <select name="rating">
+                {% for r in range(0, 6) %}
+                <option value="{{ r }}" {{ 'selected' if book.rating == r else '' }}>
+                    {{ r ~ ' star' ~ ('s' if r != 1 else '') }}
+                </option>
+                {% endfor %}
+            </select>
+        </label>
+        {% endif %}
+
+        {% if genres %}
+        <fieldset class="field">
+            <legend>Genres <small>(optional)</small></legend>
+            <div class="genre-grid">
+                {% for genre in genres %}
+                <label class="check">
+                    <input type="checkbox" name="genre_ids" value="{{ genre.genre_id }}"
+                           {{ 'checked' if genre.genre_id in selected_genre_ids else '' }}>
+                    <span>{{ genre.name }}</span>
+                </label>
+                {% endfor %}
+            </div>
+        </fieldset>
+        {% endif %}
+
+        <div class="form-actions">
+            <button class="btn btn-primary" type="submit">
+                {{ 'Save changes' if mode == 'edit' else 'Add to shelf' }}
+            </button>
+        </div>
+    </form>
+</section>
+{% endblock %}

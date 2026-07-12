@@ -3,62 +3,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Personal Library{% endblock %}</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>{% block title %}The Stacks{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
-    <link href="{{ url_for('static', path='/css/library.css') }}" rel="stylesheet">
-    {% block head_extra %}{% endblock %}
-    <script src="https://unpkg.com/htmx.org@2.0.4" defer></script>
+    <link href="{{ url_for('static', path='/css/style.css') }}" rel="stylesheet">
 </head>
-<body
-    hx-boost="true"
-    hx-target="#page-content"
-    hx-select="#page-content"
-    hx-swap="outerHTML show:window:top"
-    hx-push-url="true"
-    hx-indicator="#route-loader"
->
+<body>
     {% set active_path = request.url.path %}
-    {% set current_user_name = request.session.get('username') %}
-    {% set current_user_email = request.session.get('email') %}
-    <div id="route-loader" class="route-loader htmx-indicator"></div>
+    {% set logged_in = request.session.get('user_id') %}
 
-    <nav class="app-nav">
-        <a class="brand-mark" href="/">
+    <nav class="topbar">
+        <a class="brand" href="/">
             <i class="bi bi-bookshelf"></i>
-            <span>Shelf</span>
+            <span class="brand-name">The Stacks</span>
         </a>
 
-        <div class="nav-actions">
-            <a data-nav-link class="nav-link-pill {{ 'is-active' if active_path == '/' or active_path.startswith('/books/') else '' }}" href="/" {% if active_path == '/' or active_path.startswith('/books/') %}aria-current="page"{% endif %}>Home</a>
-            <a data-nav-link class="nav-link-pill {{ 'is-active' if active_path.startswith('/users') else '' }}" href="/users" {% if active_path.startswith('/users') %}aria-current="page"{% endif %}>Profile</a>
-            <a data-nav-link class="nav-link-pill {{ 'is-active' if active_path == '/books/new' else '' }}" href="/books/new" {% if active_path == '/books/new' %}aria-current="page"{% endif %}>Add</a>
-            <a data-nav-link class="nav-link-pill nav-link-strong {{ 'is-active' if active_path == '/users/new' else '' }}" href="/users/new" {% if active_path == '/users/new' %}aria-current="page"{% endif %}>Sign Up</a>
+        {% if logged_in %}
+        <div class="nav-links">
+            <a href="/" class="{{ 'active' if active_path == '/' else '' }}">Shelf</a>
+            <a href="/books/new" class="{{ 'active' if active_path == '/books/new' else '' }}">Add</a>
+            <a href="/users/me" class="{{ 'active' if active_path.startswith('/users') else '' }}">Profile</a>
         </div>
+        {% endif %}
 
-        <div class="auth-panel">
-            {% if current_user_name %}
-                <div class="auth-user-chip">
-                    <div class="auth-avatar">{{ current_user_name[:1]|upper }}</div>
-                    <div class="auth-user-copy">
-                        <strong>{{ current_user_name }}</strong>
-                        <span>{{ current_user_email }}</span>
-                    </div>
-                    <form action="/api/users/session/logout" method="post">
-                        <button class="auth-logout-button" type="submit">Logout</button>
-                    </form>
-                </div>
-            {% else %}
-                <a class="auth-guest-link" href="/login">Login</a>
-            {% endif %}
+        <div class="nav-spacer"></div>
+
+        {% if logged_in %}
+        <div class="user-chip">
+            <span class="avatar">{{ request.session.get('username', '?')[:1] | upper }}</span>
+            <form action="/auth/logout" method="post" class="logout-form">
+                <button type="submit" class="btn-link">Log out</button>
+            </form>
         </div>
+        {% else %}
+        <a href="/login" class="nav-login">Log in</a>
+        {% endif %}
     </nav>
 
-    <main id="page-content" class="page-shell">
+    <main class="container">
         {% block content %}{% endblock %}
     </main>
 
-    <script src="{{ url_for('static', path='/js/forms.js') }}"></script>
-    {% block scripts %}{% endblock %}
+    <script src="{{ url_for('static', path='/js/app.js') }}"></script>
 </body>
 </html>

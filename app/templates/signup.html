@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% from "_macros.html" import error_message %}
+
+{% block title %}Sign up · The Stacks{% endblock %}
+
+{% block content %}
+<div class="auth-wrap">
+    <div class="auth-aside">
+        <p class="eyebrow">Start here</p>
+        <h1>Build your shelf.</h1>
+        <p class="lede">One account, one reading log. A simple place to keep your books in order.</p>
+    </div>
+
+    <form class="auth-card" action="/auth/signup" method="post">
+        <h2>Create account</h2>
+
+        {% set err = request.query_params.get('error') %}
+        {% if err %}
+        <div class="alert alert-error">{{ error_message(err) }}</div>
+        {% endif %}
+
+        <label class="field">
+            <span>Username</span>
+            <input type="text" name="username" maxlength="255" required autofocus>
+        </label>
+        <label class="field">
+            <span>Email</span>
+            <input type="email" name="email" autocomplete="email" required>
+        </label>
+        <label class="field">
+            <span>Password <small>(8+ characters)</small></span>
+            <input type="password" name="password" autocomplete="new-password" minlength="8" required>
+        </label>
+        <button class="btn btn-primary btn-block" type="submit">Sign up</button>
+        <p class="auth-switch">Already have an account? <a href="/login">Log in</a></p>
+    </form>
+</div>
+{% endblock %}

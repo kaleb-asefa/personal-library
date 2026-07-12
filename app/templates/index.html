@@ -1,45 +1,60 @@
 {% extends "base.html" %}
+{% from "_macros.html" import error_message %}
 
-{% block title %}Books | Personal Library{% endblock %}
+{% block title %}My Shelf · The Stacks{% endblock %}
 
 {% block content %}
-    {% set read_books = books | selectattr('status', 'equalto', 'read') | list %}
-    {% set unread_books = books | selectattr('status', 'equalto', 'unread') | list %}
-    {% set total_books = books | length %}
+<header class="page-head">
+    <div>
+        <p class="eyebrow">Reading log</p>
+        <h1>{{ user.username }}'s shelf</h1>
+    </div>
+    <div class="head-stats">
+        <span><strong>{{ total_books }}</strong> on shelf</span>
+        <span class="dot">·</span>
+        <span><strong>{{ read_count }}</strong> finished</span>
+    </div>
+</header>
 
-    <section class="dashboard-hero">
-        <div>
-            <h1>{{ current_user.username }}</h1>
-            <p class="page-lede">{{ total_books }} books · {{ read_books | length }} read</p>
+<div class="shelf-actions">
+    <a class="btn btn-primary" href="/books/new"><i class="bi bi-plus-lg"></i> Add a book</a>
+</div>
+
+{% if not reading and not up_next and not finished %}
+    <section class="empty">
+        <i class="bi bi-book"></i>
+        <h2>Your shelf is empty</h2>
+        <p>Add the first book you want to track.</p>
+        <a class="btn btn-primary" href="/books/new">Add a book</a>
+    </section>
+{% else %}
+
+    {% if reading %}
+    <section class="shelf-section">
+        <h2 class="section-title">Currently reading</h2>
+        <div class="book-list">
+            {% for book in reading %}{% include "_book_row.html" %}{% endfor %}
         </div>
-        <a class="btn btn-dark" href="/books/new">Add</a>
     </section>
+    {% endif %}
 
-    <section class="shelf-layout">
-        <article class="shelf-panel">
-            <div class="section-header"><h2>Reading</h2></div>
-            {% if unread_books %}
-                <div class="book-grid compact-grid">
-                    {% for book in unread_books %}
-                        {% include "_book_tile.html" %}
-                    {% endfor %}
-                </div>
-            {% else %}
-                <section class="empty-state compact-empty"><h2>Nothing here</h2></section>
-            {% endif %}
-        </article>
-
-        <article class="shelf-panel">
-            <div class="section-header"><h2>Finished</h2></div>
-            {% if read_books %}
-                <div class="book-grid compact-grid">
-                    {% for book in read_books %}
-                        {% include "_book_tile.html" %}
-                    {% endfor %}
-                </div>
-            {% else %}
-                <section class="empty-state compact-empty"><h2>No finished books</h2></section>
-            {% endif %}
-        </article>
+    {% if up_next %}
+    <section class="shelf-section">
+        <h2 class="section-title">Up next</h2>
+        <div class="book-list">
+            {% for book in up_next %}{% include "_book_row.html" %}{% endfor %}
+        </div>
     </section>
+    {% endif %}
+
+    {% if finished %}
+    <section class="shelf-section">
+        <h2 class="section-title">Finished</h2>
+        <div class="book-list">
+            {% for book in finished %}{% include "_book_row.html" %}{% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+{% endif %}
 {% endblock %}

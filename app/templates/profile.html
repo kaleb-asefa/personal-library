@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}Profile · The Stacks{% endblock %}
+
+{% block content %}
+<header class="page-head">
+    <div>
+        <p class="eyebrow">Reader profile</p>
+        <h1>{{ user.username }}</h1>
+        <p class="page-head-sub">{{ user.email }}</p>
+    </div>
+    <div class="head-actions">
+        <a class="btn btn-ghost" href="/users/me/edit"><i class="bi bi-pencil-square"></i> Edit profile</a>
+    </div>
+</header>
+
+<section class="stats">
+    <div class="stat">
+        <span class="stat-num">{{ total_books }}</span>
+        <span class="stat-label">on shelf</span>
+    </div>
+    <div class="stat">
+        <span class="stat-num">{{ reading_count }}</span>
+        <span class="stat-label">reading</span>
+    </div>
+    <div class="stat">
+        <span class="stat-num">{{ read_count }}</span>
+        <span class="stat-label">finished</span>
+    </div>
+</section>
+
+<div class="shelf-actions">
+    <a class="btn btn-primary" href="/books/new"><i class="bi bi-plus-lg"></i> Add a book</a>
+</div>
+{% endblock %}

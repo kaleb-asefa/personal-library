@@ -1,0 +1,22 @@
+{% from "_macros.html" import stars, status_pill %}
+
+<a class="book-row" href="/books/{{ book.book_id }}">
+    <div class="book-row-main">
+        <h3 class="book-title">{{ book.title }}</h3>
+        <p class="book-author">
+            {{ book.author.name }}
+            {% if book.published_year %}<span class="dot">·</span> {{ book.published_year }}{% endif %}
+        </p>
+        {% if book.genres %}
+        <div class="genre-tags">
+            {% for genre in book.genres %}
+            <span class="genre-tag">{{ genre.name }}</span>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+    <div class="book-row-aside">
+        {{ status_pill(book.status) }}
+        {% if book.status == 'read' %}{{ stars(book.rating) }}{% endif %}
+    </div>
+</a>

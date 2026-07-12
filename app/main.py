@@ -1,214 +1,123 @@
-from fastapi import FastAPI, Request, HTTPException, status, Depends
-from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
-from fastapi.exceptions import RequestValidationError
-from fastapi.responses import HTMLResponse
-from starlette.exceptions import HTTPException as StarletteHTTPException
-from starlette.middleware.sessions import SessionMiddleware
-from fastapi.exception_handlers import http_exception_handler, request_validation_exception_handler
-
-from typing import Annotated
-
-from sqlalchemy import select
-from sqlalchemy.orm import joinedload, selectinload
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from ..orm import Book, Genre, get_db, User, Base, engine
-from .config import settings
-
-from .routers import user, books
-
-from pathlib import Path
 from contextlib import asynccontextmanager
+from pathlib import Path
 
-BASE_DIR = Path(__file__).parent  # goes up from app/ to project root
+from fastapi import Depends, FastAPI, Request
+from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
+from starlette.middleware.sessions import SessionMiddleware
+
+from .config import settings
+from .db import Base, engine, get_db
+from .models import Book, Genre, User
+from .routers import auth, books, users
+from .templating import templates
+
+BASE_DIR = Path(__file__).resolve().parent
+
+# Reference genres seeded on first run so the add-book picker is useful.
+SEED_GENRES = [
+    "Science Fiction",
+    "Fantasy",
+    "Literary Fiction",
+    "Mystery",
+    "Thriller",
+    "Historical Fiction",
+    "Horror",
+    "Romance",
+    "Biography",
+    "Nonfiction",
+    "Poetry",
+    "Young Adult",
+]
+
+
+async def seed_genres(db: AsyncSession) -> None:
+    existing = {g.name for g in (await db.execute(select(Genre))).scalars().all()}
+    missing = [Genre(name=name) for name in SEED_GENRES if name not in existing]
+    if missing:
+        db.add_all(missing)
+        await db.commit()
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup code
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+    from .db import AsyncSessionLocal
+
+    async with AsyncSessionLocal() as session:
+        await seed_genres(session)
     yield
-    # Shutdown code
     await engine.dispose()
 
+
 app = FastAPI(lifespan=lifespan)
-app.add_middleware(SessionMiddleware, secret_key=settings.secret_key.get_secret_value(), same_site="lax")
-
-templates = Jinja2Templates(directory=BASE_DIR / 'templates')
-
-app.include_router(user.router, prefix="/api/users", tags=["users"])
-app.include_router(books.router, prefix="/api/books", tags=["books"])
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=settings.secret_key.get_secret_value(),
+    same_site="lax",
+)
 
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 
+app.include_router(auth.router)
+app.include_router(books.router)
+app.include_router(users.router)
 
 
-
-@app.get("/", include_in_schema=False, response_class=HTMLResponse)
-async def home(request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
+@app.get("/", response_class=HTMLResponse, include_in_schema=False)
+async def home(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    """Shelf home. Logged-out visitors land on the login page."""
     user_id = request.session.get("user_id")
-
     if not user_id:
-        return templates.TemplateResponse(request, "login.html", {"show_home_link": False})
+        return RedirectResponse(url="/login", status_code=303)
 
-    user = await db.execute(select(User).where(User.user_id == user_id))
-    user = user.scalar_one_or_none()
+    user = await db.scalar(select(User).where(User.user_id == user_id))
     if not user:
         request.session.clear()
-        return templates.TemplateResponse(request, "login.html", {"show_home_link": False})
+        return RedirectResponse(url="/login", status_code=303)
 
-    books = await db.execute(
+    books_result = await db.execute(
         select(Book)
         .where(Book.user_id == user_id)
-        .options(selectinload(Book.author), selectinload(Book.genres), selectinload(Book.user))
+        .options(selectinload(Book.author), selectinload(Book.genres))
+        .order_by(Book.created_at.desc())
     )
-    books = books.scalars().unique().all()
-    read_count = sum(1 for book in books if book.status == "read")
+    all_books = list(books_result.scalars().unique().all())
+
+    reading = [b for b in all_books if b.status == "reading"]
+    up_next = [b for b in all_books if b.status == "unread"]
+    finished = [b for b in all_books if b.status == "read"]
+
     return templates.TemplateResponse(
         request,
         "index.html",
         {
-            "books": books,
-            "current_user": user,
-            "current_user_id": user.user_id,
-            "read_count": read_count,
+            "user": user,
+            "reading": reading,
+            "up_next": up_next,
+            "finished": finished,
+            "total_books": len(all_books),
+            "read_count": len(finished),
         },
     )
 
-@app.get("/users", response_class=HTMLResponse, include_in_schema=False)
-async def users_page(request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
-    user_id = request.session.get("user_id")
-    if not user_id:
-        return templates.TemplateResponse(request, "login.html", {"show_home_link": False})
-
-    user = await db.execute(select(User).where(User.user_id == user_id).options(selectinload(User.books)))
-    user = user.unique().scalar_one_or_none()
-    if not user:
-        request.session.clear()
-        return templates.TemplateResponse(request, "login.html", {"show_home_link": False})
-
-    return templates.TemplateResponse(request, "users.html", {"users": [user], "current_user": user, "current_user_id": user.user_id})
-
-@app.get("/users/new", response_class=HTMLResponse, include_in_schema=False)
-def create_user_page(request: Request):
-    return templates.TemplateResponse(request, "create_user.html")
 
 @app.get("/login", response_class=HTMLResponse, include_in_schema=False)
-def login_page(request: Request):
-    return templates.TemplateResponse(request, "login.html")
-
-@app.get("/logout", response_class=HTMLResponse, include_in_schema=False)
-def logout_page(request: Request):
-    return templates.TemplateResponse(request, "logout.html")
-
-@app.get("/users/{user_id}/edit", response_class=HTMLResponse, include_in_schema=False)
-async def edit_user_page(user_id: int, request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
-    user = await db.execute(select(User).where(User.user_id == user_id))
-    user = user.scalar_one_or_none()
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-    return templates.TemplateResponse(request, "edit_user.html", {"user": user})
-
-@app.get("/users/{user_id}", response_class=HTMLResponse, include_in_schema=False)
-async def user_detail_page(user_id: int, request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
-    user = await db.execute(
-        select(User)
-        .where(User.user_id == user_id)
-        .options(
-            joinedload(User.books).joinedload(Book.author),
-            joinedload(User.books).selectinload(Book.genres),
-            joinedload(User.books).joinedload(Book.user)
-        )
-    )
-    user = user.unique().scalar_one_or_none()
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-    return templates.TemplateResponse(request, "user_detail.html", {"user": user, "books": user.books})
-
-@app.get("/users/{user_id}/books", response_class=HTMLResponse, include_in_schema=False)
-async def user_books_page(user_id: int, request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
-    user = await db.execute(select(User).where(User.user_id == user_id))
-    user = user.scalar_one_or_none()
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-    
-    books = await db.execute(
-        select(Book)
-        .where(Book.user_id == user_id)
-        .options(joinedload(Book.author), joinedload(Book.genres), joinedload(Book.user))
-    )
-    books = books.scalars().unique().all()
-    return templates.TemplateResponse(request, "user_books.html", {"user": user, "books": books})
-
-@app.get("/books/new", response_class=HTMLResponse, include_in_schema=False)
-async def add_book_page(request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
-    user_id = request.session.get("user_id")
-    if not user_id:
-        return templates.TemplateResponse(request, "login.html", {"show_home_link": False})
-
-    genres = await db.execute(select(Genre).order_by(Genre.name))
-    genres = genres.scalars().all()
-    user = await db.execute(select(User).where(User.user_id == user_id))
-    user = user.scalar_one_or_none()
-    return templates.TemplateResponse(
-        request,
-        "add_book.html",
-        {"genres": genres, "current_user": user, "current_user_id": user.user_id},
-    )
-
-@app.get("/books/{book_id}", response_class=HTMLResponse, include_in_schema=False)
-async def book_detail_page(book_id: int, request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
-    book = await db.execute(
-        select(Book)
-        .where(Book.book_id == book_id)
-        .options(joinedload(Book.author), joinedload(Book.genres), joinedload(Book.user))
-    )
-    book = book.unique().scalar_one_or_none()
-    if not book:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found")
-    return templates.TemplateResponse(request, "book_detail.html", {"book": book})
-
-@app.get("/books/{book_id}/edit", response_class=HTMLResponse, include_in_schema=False)
-async def edit_book_page(book_id: int, request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
-    user_id = request.session.get("user_id")
-    if not user_id:
-        return templates.TemplateResponse(request, "login.html", {"show_home_link": False})
-
-    book = await db.execute(
-        select(Book)
-        .where(Book.book_id == book_id)
-        .options(joinedload(Book.author), joinedload(Book.genres), joinedload(Book.user))
-    )
-    book = book.unique().scalar_one_or_none()
-    if not book:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found")
-    
-    genres = await db.execute(select(Genre).order_by(Genre.name))
-    genres = genres.scalars().all()
-    user = await db.execute(select(User).where(User.user_id == user_id))
-    user = user.scalar_one_or_none()
-    selected_genre_ids = {genre.genre_id for genre in book.genres}
-    return templates.TemplateResponse(
-        request,
-        "edit_book.html",
-        {
-            "book": book,
-            "genres": genres,
-            "current_user": user,
-            "current_user_id": user.user_id,
-            "selected_genre_ids": selected_genre_ids,
-        },
-    )
+async def login_page(request: Request):
+    if request.session.get("user_id"):
+        return RedirectResponse(url="/", status_code=303)
+    return templates.TemplateResponse(request, "login.html", {})
 
 
-
-
-    
-@app.exception_handler(StarletteHTTPException)
-async def general_http_exception_handler(request: Request, exc: StarletteHTTPException):
-    return await http_exception_handler(request, exc)
-
-@app.exception_handler(RequestValidationError)
-async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    return await request_validation_exception_handler(request, exc)
+@app.get("/signup", response_class=HTMLResponse, include_in_schema=False)
+async def signup_page(request: Request):
+    if request.session.get("user_id"):
+        return RedirectResponse(url="/", status_code=303)
+    return templates.TemplateResponse(request, "signup.html", {})
