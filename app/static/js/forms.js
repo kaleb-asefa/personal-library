@@ -7,6 +7,48 @@ const showMessage = (form, type, text) => {
     message.textContent = text;
 };
 
+const AUTH_STORAGE_KEYS = {
+    token: "reading-shelf.access-token",
+    user: "reading-shelf.current-user",
+};
+
+const readStoredAuth = () => {
+    const token = window.localStorage.getItem(AUTH_STORAGE_KEYS.token);
+    const userRaw = window.localStorage.getItem(AUTH_STORAGE_KEYS.user);
+
+    let user = null;
+
+    if (userRaw) {
+        try {
+            user = JSON.parse(userRaw);
+        } catch {
+            user = null;
+        }
+    }
+
+    return { token, user };
+};
+
+const saveAuth = ({ token, user }) => {
+    if (token) {
+        window.localStorage.setItem(AUTH_STORAGE_KEYS.token, token);
+    }
+
+    if (user) {
+        window.localStorage.setItem(AUTH_STORAGE_KEYS.user, JSON.stringify(user));
+    }
+};
+
+const clearAuth = () => {
+    window.localStorage.removeItem(AUTH_STORAGE_KEYS.token);
+    window.localStorage.removeItem(AUTH_STORAGE_KEYS.user);
+};
+
+const getAuthHeaders = () => {
+    const { token } = readStoredAuth();
+    return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
 const readJson = async (response) => {
     try {
         return await response.json();
@@ -20,6 +62,22 @@ const submitJson = async (url, payload) => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
+    });
+    const data = await readJson(response);
+
+    if (!response.ok) {
+        const message = data.message || data.detail || "Something went wrong.";
+        throw new Error(typeof message === "string" ? message : "Validation error.");
+    }
+
+    return data;
+};
+
+const submitFormUrlEncoded = async (url, payload) => {
+    const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams(payload).toString(),
     });
     const data = await readJson(response);
 
@@ -58,6 +116,8 @@ const deleteJson = async (url) => {
 };
 
 const getActiveNavHref = (pathname) => {
+    if (pathname === "/login") return "/login";
+    if (pathname === "/logout") return "/logout";
     if (pathname === "/users/new") return "/users/new";
     if (pathname === "/books/new") return "/books/new";
     if (pathname.startsWith("/books/")) return "/";
@@ -98,6 +158,68 @@ const visitPage = (url) => {
     window.location.href = url;
 };
 
+const userInitials = (user) => {
+    const source = user?.username || user?.email || "RS";
+    const pieces = source
+        .split(/[\s._-]+/)
+        .filter(Boolean)
+        .slice(0, 2);
+
+    return pieces.map((piece) => piece[0].toUpperCase()).join("") || "RS";
+};
+
+const updateAuthUI = (user) => {
+    const guestLink = document.querySelector("[data-auth-guest-link]");
+    const userChip = document.querySelector("[data-auth-user-chip]");
+    const userName = document.querySelector("[data-auth-name]");
+    const userEmail = document.querySelector("[data-auth-email]");
+    const userAvatar = document.querySelector("[data-auth-avatar]");
+
+    if (user) {
+        if (guestLink) guestLink.hidden = true;
+        if (userChip) userChip.hidden = false;
+        if (userName) userName.textContent = user.username;
+        if (userEmail) userEmail.textContent = user.email;
+        if (userAvatar) userAvatar.textContent = userInitials(user);
+        return;
+    }
+
+    if (guestLink) guestLink.hidden = false;
+    if (userChip) userChip.hidden = true;
+};
+
+const fetchAuthUser = async () => {
+    const { token } = readStoredAuth();
+    if (!token) return null;
+
+    const response = await fetch("/api/users/me", {
+        headers: getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+        clearAuth();
+        updateAuthUI(null);
+        return null;
+    }
+
+    const user = await readJson(response);
+    saveAuth({ token, user });
+    updateAuthUI(user);
+    return user;
+};
+
+const syncAuthState = async () => {
+    const { user } = readStoredAuth();
+    updateAuthUI(user);
+
+    try {
+        await fetchAuthUser();
+    } catch {
+        clearAuth();
+        updateAuthUI(null);
+    }
+};
+
 const handleCreateUser = async (form) => {
     const formData = new FormData(form);
     const payload = {
@@ -111,6 +233,38 @@ const handleCreateUser = async (form) => {
     window.setTimeout(() => {
         visitPage(`/users/${user.user_id}`);
     }, 500);
+};
+
+const handleLogin = async (form) => {
+    const formData = new FormData(form);
+    const payload = {
+        username: formData.get("email"),
+        password: formData.get("password"),
+    };
+
+    const tokenResponse = await submitFormUrlEncoded("/api/users/token", payload);
+    const token = tokenResponse.access_token;
+
+    window.localStorage.setItem(AUTH_STORAGE_KEYS.token, token);
+    const user = await fetchAuthUser();
+
+    if (!user) {
+        throw new Error("Could not load profile.");
+    }
+
+    showMessage(form, "success", `Signed in as ${user.username}.`);
+    window.setTimeout(() => {
+        visitPage("/");
+    }, 350);
+};
+
+const handleLogout = async (form) => {
+    clearAuth();
+    updateAuthUI(null);
+    showMessage(form, "success", "Signed out.");
+    window.setTimeout(() => {
+        visitPage("/");
+    }, 350);
 };
 
 const handleAddBook = async (form) => {
@@ -194,6 +348,14 @@ document.body.addEventListener("submit", async (event) => {
     if (submitButton) submitButton.disabled = true;
 
     try {
+        if (formType === "login") {
+            await handleLogin(form);
+        }
+
+        if (formType === "logout") {
+            await handleLogout(form);
+        }
+
         if (formType === "create-user") {
             await handleCreateUser(form);
         }
@@ -246,3 +408,4 @@ document.body.addEventListener("htmx:pushedIntoHistory", updateActiveNav);
 document.body.addEventListener("htmx:historyRestore", updateActiveNav);
 window.addEventListener("popstate", updateActiveNav);
 updateActiveNav();
+syncAuthState();

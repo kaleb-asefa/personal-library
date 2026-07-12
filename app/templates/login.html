@@ -3,35 +3,44 @@
 {% block title %}Login | Personal Library{% endblock %}
 
 {% block content %}
-    <section class="auth-layout">
-        <div class="auth-copy">
-            <p class="eyebrow">Access</p>
-            <h1>Sign in</h1>
-            <p class="page-lede">A clean placeholder login page for learning FastAPI. The auth wiring can be added later.</p>
+    <section class="auth-layout login-layout">
+        <div class="auth-copy auth-copy-dark">
+            <p class="eyebrow">Welcome</p>
+            <h1>Sign in to your shelf</h1>
+            <p class="page-lede">Keep your reading list, progress, and completed books in one place.</p>
 
             <div class="auth-points">
                 <div class="auth-point">
                     <i class="bi bi-journal-bookmark"></i>
                     <div>
-                        <strong>Simple structure</strong>
-                        <p>Keep the endpoint, template, and UI separate.</p>
+                        <strong>Reading list</strong>
+                        <p>See what is next and what is already finished.</p>
                     </div>
                 </div>
                 <div class="auth-point">
-                    <i class="bi bi-shield-lock"></i>
+                    <i class="bi bi-graph-up-arrow"></i>
                     <div>
-                        <strong>Auth later</strong>
-                        <p>Drop in token handling when you are ready.</p>
+                        <strong>Progress view</strong>
+                        <p>Track the books you want to finish first.</p>
+                    </div>
+                </div>
+                <div class="auth-point">
+                    <i class="bi bi-people"></i>
+                    <div>
+                        <strong>Reader profile</strong>
+                        <p>Show your name in the navbar after sign in.</p>
                     </div>
                 </div>
             </div>
         </div>
 
-        <form class="action-form auth-card" hx-boost="false">
+        <form class="action-form auth-card" data-api-form="login" hx-boost="false">
+            <div class="form-alert" data-form-message hidden></div>
+
             <div class="auth-card-header">
-                <p class="eyebrow">Welcome back</p>
-                <h2>Login form</h2>
-                <p>Fields are ready for the backend connection you will add later.</p>
+                <p class="eyebrow">Account</p>
+                <h2>Login</h2>
+                <p>Use the email and password from your reader profile.</p>
             </div>
 
             <label class="field-group">
@@ -41,7 +50,7 @@
 
             <label class="field-group">
                 <span>Password</span>
-                <input class="form-control" type="password" name="password" placeholder="Your password" autocomplete="current-password" required>
+                <input class="form-control" type="password" name="password" placeholder="Password" autocomplete="current-password" required>
             </label>
 
             <div class="auth-actions">
@@ -51,7 +60,7 @@
                 </button>
                 <a class="btn btn-outline-dark submit-button" href="/users/new">
                     <i class="bi bi-person-plus"></i>
-                    Create Account
+                    New Reader
                 </a>
             </div>
         </form>

@@ -4,6 +4,16 @@
     </div>
 
     <div class="book-meta">
+        <div class="book-progress">
+            <div class="book-progress-head">
+                <span>{{ 'Finished' if book.status == 'read' else 'In progress' }}</span>
+                <strong>{{ 100 if book.status == 'read' else 35 }}%</strong>
+            </div>
+            <div class="progress-track progress-track-small" aria-hidden="true">
+                <span style="width: {{ 100 if book.status == 'read' else 35 }}%"></span>
+            </div>
+        </div>
+
         <div class="meta-row">
             <i class="bi bi-person"></i>
             <span>{{ book.author.name }}</span>
