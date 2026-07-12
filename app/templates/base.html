@@ -19,50 +19,34 @@
     hx-indicator="#route-loader"
 >
     {% set active_path = request.url.path %}
+    {% set current_user_name = request.session.get('username') %}
     <div id="route-loader" class="route-loader htmx-indicator"></div>
 
     <nav class="app-nav">
         <a class="brand-mark" href="/">
             <i class="bi bi-bookshelf"></i>
-            <span>Reading Shelf</span>
+            <span>Shelf</span>
         </a>
 
         <div class="nav-actions">
-            <a data-nav-link class="nav-link-pill {{ 'is-active' if active_path == '/' or (active_path.startswith('/books/') and active_path != '/books/new') else '' }}" href="/" {% if active_path == '/' or (active_path.startswith('/books/') and active_path != '/books/new') %}aria-current="page"{% endif %}>
-                <i class="bi bi-house-door"></i>
-                <span>Home</span>
-            </a>
-            <a data-nav-link class="nav-link-pill {{ 'is-active' if active_path.startswith('/users') and active_path != '/users/new' else '' }}" href="/users" {% if active_path.startswith('/users') and active_path != '/users/new' %}aria-current="page"{% endif %}>
-                <i class="bi bi-people"></i>
-                <span>Readers</span>
-            </a>
-            <a data-nav-link class="nav-link-pill {{ 'is-active' if active_path == '/books/new' else '' }}" href="/books/new" {% if active_path == '/books/new' %}aria-current="page"{% endif %}>
-                <i class="bi bi-plus-square"></i>
-                <span>Add Book</span>
-            </a>
-            <a data-nav-link class="nav-link-pill nav-link-strong {{ 'is-active' if active_path == '/users/new' else '' }}" href="/users/new" {% if active_path == '/users/new' %}aria-current="page"{% endif %}>
-                <i class="bi bi-person-plus"></i>
-                <span>Sign Up</span>
-            </a>
+            <a data-nav-link class="nav-link-pill {{ 'is-active' if active_path == '/' or active_path.startswith('/books/') else '' }}" href="/" {% if active_path == '/' or active_path.startswith('/books/') %}aria-current="page"{% endif %}>Home</a>
+            <a data-nav-link class="nav-link-pill {{ 'is-active' if active_path.startswith('/users') else '' }}" href="/users" {% if active_path.startswith('/users') %}aria-current="page"{% endif %}>Profile</a>
+            <a data-nav-link class="nav-link-pill {{ 'is-active' if active_path == '/books/new' else '' }}" href="/books/new" {% if active_path == '/books/new' %}aria-current="page"{% endif %}>Add</a>
+            <a data-nav-link class="nav-link-pill nav-link-strong {{ 'is-active' if active_path == '/users/new' else '' }}" href="/users/new" {% if active_path == '/users/new' %}aria-current="page"{% endif %}>Sign Up</a>
         </div>
 
-        <div class="auth-panel" data-auth-panel>
-            <a class="auth-guest-link" data-auth-guest-link href="/login">
-                <i class="bi bi-box-arrow-in-right"></i>
-                <span>Login</span>
-            </a>
-
-            <div class="auth-user-chip" data-auth-user-chip hidden>
-                <div class="auth-avatar" data-auth-avatar>RS</div>
-                <div class="auth-user-copy">
-                    <strong data-auth-name>Guest</strong>
-                    <span data-auth-email></span>
+        <div class="auth-panel">
+            {% if current_user_name %}
+                <div class="auth-user-chip">
+                    <div class="auth-avatar">{{ current_user_name[:1]|upper }}</div>
+                    <strong>{{ current_user_name }}</strong>
+                    <form action="/api/users/session/logout" method="post">
+                        <button class="auth-logout-button" type="submit">Logout</button>
+                    </form>
                 </div>
-                <button class="auth-logout-button" type="button" data-auth-logout>
-                    <i class="bi bi-box-arrow-right"></i>
-                    Logout
-                </button>
-            </div>
+            {% else %}
+                <a class="auth-guest-link" href="/login">Login</a>
+            {% endif %}
         </div>
     </nav>
 

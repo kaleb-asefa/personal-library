@@ -5,54 +5,31 @@
 {% block content %}
     <header class="page-header">
         <div>
-            <p class="eyebrow">Readers</p>
-            <h1>Library users</h1>
-            <p class="page-lede">Each profile keeps its own reading shelf and book history.</p>
+            <h1>{{ users[0].username }}</h1>
+            <p class="page-lede">{{ users[0].email }}</p>
         </div>
-        <a class="btn btn-dark" href="/users/new">
-            <i class="bi bi-person-plus"></i>
-            New User
-        </a>
     </header>
 
     {% if users %}
-        <section class="user-grid" aria-label="User list">
-            {% for user in users %}
-                {% set avatar_src = url_for('static', path='/profile/default.png') %}
-                <article class="user-card">
-                    <img class="avatar" src="{{ avatar_src }}" alt="{{ user.username }} profile image">
-                    <div class="user-card-body">
-                        <div>
-                            <h2>{{ user.username }}</h2>
-                            <p>{{ user.email }}</p>
-                        </div>
-                        <div class="user-card-footer">
-                            <span class="mini-stat">
-                                <i class="bi bi-book"></i>
-                                {{ user.books|length }} {{ 'book' if user.books|length == 1 else 'books' }}
-                            </span>
-                            <span class="icon-actions">
-                                <a class="icon-link" href="/users/{{ user.user_id }}/edit" aria-label="Edit {{ user.username }}">
-                                    <i class="bi bi-pencil-square"></i>
-                                </a>
-                                <a class="icon-link" href="/users/{{ user.user_id }}" aria-label="Open {{ user.username }}">
-                                    <i class="bi bi-arrow-right"></i>
-                                </a>
-                            </span>
-                        </div>
+        {% set user = users[0] %}
+        <section class="user-grid" aria-label="Profile">
+            <article class="user-card">
+                <div class="user-card-body">
+                    <div>
+                        <h2>{{ user.username }}</h2>
+                        <p>{{ user.books|length }} books</p>
                     </div>
-                </article>
-            {% endfor %}
+                    <div class="user-card-footer">
+                        <a class="btn btn-dark" href="/books/new">Add Book</a>
+                        <a class="btn btn-outline-dark" href="/users/{{ user.user_id }}/books">Shelf</a>
+                    </div>
+                </div>
+            </article>
         </section>
     {% else %}
         <section class="empty-state">
-            <i class="bi bi-person-plus"></i>
-            <h2>No users yet</h2>
-            <p>Create a reader profile to start organizing books by user.</p>
-            <a class="btn btn-dark" href="/users/new">
-                <i class="bi bi-person-plus"></i>
-                New User
-            </a>
+            <h2>No profile</h2>
+            <a class="btn btn-dark" href="/users/new">Sign Up</a>
         </section>
     {% endif %}
 {% endblock %}

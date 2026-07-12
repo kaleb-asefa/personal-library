@@ -5,14 +5,10 @@
 {% block content %}
     <section class="form-layout">
         <div class="form-intro">
-            <p class="eyebrow">Readers</p>
             <h1>Sign up</h1>
-            <p class="page-lede">Create your reader profile.</p>
         </div>
 
-        <form class="action-form" data-api-form="create-user" hx-boost="false">
-            <div class="form-alert" data-form-message hidden></div>
-
+        <form class="action-form" action="/api/users/signup" method="post">
             <label class="field-group">
                 <span>Username</span>
                 <input class="form-control" name="username" type="text" maxlength="255" required>
@@ -28,10 +24,7 @@
                 <input class="form-control" name="password" type="password" autocomplete="new-password">
             </label>
 
-            <button class="btn btn-dark submit-button" type="submit">
-                <i class="bi bi-person-plus"></i>
-                Sign Up
-            </button>
+            <button class="btn btn-dark submit-button" type="submit">Sign Up</button>
         </form>
     </section>
 {% endblock %}

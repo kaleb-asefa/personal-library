@@ -5,13 +5,12 @@
 {% block content %}
     <section class="form-layout form-layout-wide">
         <div class="form-intro">
-            <p class="eyebrow">Books</p>
             <h1>Edit book</h1>
-            <p class="page-lede">Update the catalog details, reading status, rating, owner, and genres.</p>
+            <p class="page-lede">Update the shelf entry.</p>
         </div>
 
         <form class="action-form" data-api-form="update-book" data-book-id="{{ book.book_id }}" hx-boost="false">
-            <div class="form-alert" data-form-message hidden></div>
+            <input type="hidden" name="user_id" value="{{ current_user.user_id }}">
 
             <label class="field-group">
                 <span>Title</span>
@@ -19,15 +18,6 @@
             </label>
 
             <div class="form-row">
-                <label class="field-group">
-                    <span>User</span>
-                    <select class="form-select" name="user_id" required>
-                        {% for user in users %}
-                            <option value="{{ user.user_id }}" {% if user.user_id == book.user_id %}selected{% endif %}>{{ user.username }}</option>
-                        {% endfor %}
-                    </select>
-                </label>
-
                 <label class="field-group">
                     <span>Author</span>
                     <select class="form-select" name="author_id" required>
@@ -75,14 +65,8 @@
             </fieldset>
 
             <div class="button-row">
-                <button class="btn btn-dark submit-button" type="submit">
-                    <i class="bi bi-check2"></i>
-                    Save Book
-                </button>
-                <button class="btn btn-outline-danger submit-button" type="button" data-api-delete="book" data-id="{{ book.book_id }}" data-redirect="/users/{{ book.user_id }}/books">
-                    <i class="bi bi-trash3"></i>
-                    Delete
-                </button>
+                <button class="btn btn-dark submit-button" type="submit">Save</button>
+                <button class="btn btn-outline-danger submit-button" type="button" data-api-delete="book" data-id="{{ book.book_id }}" data-redirect="/users/{{ book.user_id }}/books">Delete</button>
             </div>
         </form>
     </section>

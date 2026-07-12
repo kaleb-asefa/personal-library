@@ -5,14 +5,9 @@
 {% block content %}
     <header class="page-header">
         <div>
-            <p class="eyebrow">Bookshelf</p>
-            <h1>{{ user.username }}'s books</h1>
-            <p class="page-lede">A user-specific view of saved books and reading progress.</p>
+            <h1>{{ user.username }}</h1>
+            <p class="page-lede">{{ books|length }} books</p>
         </div>
-        <a class="btn btn-dark" href="/books/new">
-            <i class="bi bi-plus-lg"></i>
-            Add Book
-        </a>
     </header>
 
     {% if books %}
@@ -23,13 +18,8 @@
         </section>
     {% else %}
         <section class="empty-state">
-            <i class="bi bi-journal-plus"></i>
             <h2>No books yet</h2>
-            <p>Add a book to this user profile.</p>
-            <a class="btn btn-dark" href="/books/new">
-                <i class="bi bi-plus-lg"></i>
-                Add Book
-            </a>
+            <a class="btn btn-dark" href="/books/new">Add Book</a>
         </section>
     {% endif %}
 {% endblock %}

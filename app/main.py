@@ -4,6 +4,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import HTMLResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from starlette.middleware.sessions import SessionMiddleware
 from fastapi.exception_handlers import http_exception_handler, request_validation_exception_handler
 
 from typing import Annotated
@@ -13,6 +14,7 @@ from sqlalchemy.orm import joinedload, selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..orm import Book, Author, Genre, get_db, User, Base, engine
+from .config import settings
 
 from .routers import user, books
 
@@ -31,6 +33,7 @@ async def lifespan(app: FastAPI):
     await engine.dispose()
 
 app = FastAPI(lifespan=lifespan)
+app.add_middleware(SessionMiddleware, secret_key=settings.secret_key.get_secret_value(), same_site="lax")
 
 templates = Jinja2Templates(directory=BASE_DIR / 'templates')
 
@@ -44,15 +47,48 @@ app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 
 @app.get("/", include_in_schema=False, response_class=HTMLResponse)
 async def home(request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
-    books = await db.execute(select(Book).options(selectinload(Book.author), selectinload(Book.genres), selectinload(Book.user)))
+    user_id = request.session.get("user_id")
+
+    if not user_id:
+        return templates.TemplateResponse(request, "login.html", {"show_home_link": False})
+
+    user = await db.execute(select(User).where(User.user_id == user_id))
+    user = user.scalar_one_or_none()
+    if not user:
+        request.session.clear()
+        return templates.TemplateResponse(request, "login.html", {"show_home_link": False})
+
+    books = await db.execute(
+        select(Book)
+        .where(Book.user_id == user_id)
+        .options(selectinload(Book.author), selectinload(Book.genres), selectinload(Book.user))
+    )
     books = books.scalars().unique().all()
-    return templates.TemplateResponse(request, "index.html", {'books': books})
+    read_count = sum(1 for book in books if book.status == "read")
+    return templates.TemplateResponse(
+        request,
+        "index.html",
+        {
+            "books": books,
+            "current_user": user,
+            "current_user_id": user.user_id,
+            "read_count": read_count,
+        },
+    )
 
 @app.get("/users", response_class=HTMLResponse, include_in_schema=False)
 async def users_page(request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
-    users = await db.execute(select(User).options(selectinload(User.books)))
-    users = users.scalars().unique().all()
-    return templates.TemplateResponse(request, "users.html", {"users": users})
+    user_id = request.session.get("user_id")
+    if not user_id:
+        return templates.TemplateResponse(request, "login.html", {"show_home_link": False})
+
+    user = await db.execute(select(User).where(User.user_id == user_id).options(selectinload(User.books)))
+    user = user.unique().scalar_one_or_none()
+    if not user:
+        request.session.clear()
+        return templates.TemplateResponse(request, "login.html", {"show_home_link": False})
+
+    return templates.TemplateResponse(request, "users.html", {"users": [user], "current_user": user, "current_user_id": user.user_id})
 
 @app.get("/users/new", response_class=HTMLResponse, include_in_schema=False)
 def create_user_page(request: Request):
@@ -107,16 +143,20 @@ async def user_books_page(user_id: int, request: Request, db: Annotated[AsyncSes
 
 @app.get("/books/new", response_class=HTMLResponse, include_in_schema=False)
 async def add_book_page(request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
+    user_id = request.session.get("user_id")
+    if not user_id:
+        return templates.TemplateResponse(request, "login.html", {"show_home_link": False})
+
     authors = await db.execute(select(Author).order_by(Author.name))
     authors = authors.scalars().all()
     genres = await db.execute(select(Genre).order_by(Genre.name))
     genres = genres.scalars().all()
-    users = await db.execute(select(User).order_by(User.username))
-    users = users.scalars().all()
+    user = await db.execute(select(User).where(User.user_id == user_id))
+    user = user.scalar_one_or_none()
     return templates.TemplateResponse(
         request,
         "add_book.html",
-        {"authors": authors, "genres": genres, "users": users},
+        {"authors": authors, "genres": genres, "current_user": user, "current_user_id": user.user_id},
     )
 
 @app.get("/books/{book_id}", response_class=HTMLResponse, include_in_schema=False)
@@ -133,6 +173,10 @@ async def book_detail_page(book_id: int, request: Request, db: Annotated[AsyncSe
 
 @app.get("/books/{book_id}/edit", response_class=HTMLResponse, include_in_schema=False)
 async def edit_book_page(book_id: int, request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
+    user_id = request.session.get("user_id")
+    if not user_id:
+        return templates.TemplateResponse(request, "login.html", {"show_home_link": False})
+
     book = await db.execute(
         select(Book)
         .where(Book.book_id == book_id)
@@ -146,8 +190,8 @@ async def edit_book_page(book_id: int, request: Request, db: Annotated[AsyncSess
     authors = authors.scalars().all()
     genres = await db.execute(select(Genre).order_by(Genre.name))
     genres = genres.scalars().all()
-    users = await db.execute(select(User).order_by(User.username))
-    users = users.scalars().all()
+    user = await db.execute(select(User).where(User.user_id == user_id))
+    user = user.scalar_one_or_none()
     selected_genre_ids = {genre.genre_id for genre in book.genres}
     return templates.TemplateResponse(
         request,
@@ -156,7 +200,8 @@ async def edit_book_page(book_id: int, request: Request, db: Annotated[AsyncSess
             "book": book,
             "authors": authors,
             "genres": genres,
-            "users": users,
+            "current_user": user,
+            "current_user_id": user.user_id,
             "selected_genre_ids": selected_genre_ids,
         },
     )

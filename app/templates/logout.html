@@ -4,24 +4,10 @@
 
 {% block content %}
     <section class="auth-page">
-        <form class="auth-card auth-card-slim" data-api-form="logout" hx-boost="false">
-            <div class="auth-card-header auth-card-header-tight">
-                <p class="eyebrow">Reading Shelf</p>
-                <h1>Logout</h1>
-            </div>
-
-            <div class="form-alert" data-form-message hidden></div>
-
-            <p class="auth-muted">This clears the current session on this device.</p>
-
-            <button class="btn btn-dark submit-button auth-submit" type="submit">
-                <i class="bi bi-box-arrow-right"></i>
-                Logout
-            </button>
-
-            <a class="btn btn-outline-dark submit-button auth-secondary" href="/">
-                Home
-            </a>
+        <form class="auth-card auth-card-slim" action="/api/users/session/logout" method="post">
+            <div class="auth-card-header auth-card-header-tight"><h1>Logout</h1></div>
+            <button class="btn btn-dark submit-button auth-submit" type="submit">Logout</button>
+            <a class="btn btn-outline-dark submit-button auth-secondary" href="/">Cancel</a>
         </form>
     </section>
 {% endblock %}

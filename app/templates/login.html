@@ -4,33 +4,18 @@
 
 {% block content %}
     <section class="auth-page">
-        <form class="auth-card auth-card-slim" data-api-form="login" hx-boost="false">
-            <div class="auth-card-header auth-card-header-tight">
-                <p class="eyebrow">Reading Shelf</p>
-                <h1>Login</h1>
-            </div>
-
-            <div class="form-alert" data-form-message hidden></div>
-
+        <form class="auth-card auth-card-slim" action="/api/users/session/login" method="post">
+            <div class="auth-card-header auth-card-header-tight"><h1>Login</h1></div>
             <label class="field-group">
                 <span>Email</span>
-                <input class="form-control" type="email" name="email" placeholder="name@example.com" autocomplete="email" required>
+                <input class="form-control" type="email" name="email" autocomplete="email" required>
             </label>
-
             <label class="field-group">
                 <span>Password</span>
-                <input class="form-control" type="password" name="password" placeholder="Password" autocomplete="current-password" required>
+                <input class="form-control" type="password" name="password" autocomplete="current-password" required>
             </label>
-
-            <button class="btn btn-dark submit-button auth-submit" type="submit">
-                <i class="bi bi-box-arrow-in-right"></i>
-                Login
-            </button>
-
-            <div class="auth-subtle-link">
-                <span>New here?</span>
-                <a href="/users/new">Sign Up</a>
-            </div>
+            <button class="btn btn-dark submit-button auth-submit" type="submit">Login</button>
+            <a class="auth-subtle-link" href="/users/new">Sign Up</a>
         </form>
     </section>
 {% endblock %}

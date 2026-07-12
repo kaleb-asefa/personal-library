@@ -1,34 +1,15 @@
 <a class="book-tile" href="/books/{{ book.book_id }}" aria-label="Open {{ book.title }}">
-    <div class="book-cover cover-{{ (loop.index0 % 5) + 1 if loop else 1 }}">
+    <div class="book-cover cover-{{ (book.book_id % 5) + 1 }}">
         <h2 class="book-title">{{ book.title }}</h2>
     </div>
 
     <div class="book-meta">
-        <div class="book-progress">
-            <div class="book-progress-head">
-                <span>{{ 'Finished' if book.status == 'read' else 'In progress' }}</span>
-                <strong>{{ 100 if book.status == 'read' else 35 }}%</strong>
-            </div>
-            <div class="progress-track progress-track-small" aria-hidden="true">
-                <span style="width: {{ 100 if book.status == 'read' else 35 }}%"></span>
-            </div>
-        </div>
-
         <div class="meta-row">
-            <i class="bi bi-person"></i>
             <span>{{ book.author.name }}</span>
         </div>
 
-        {% if book.user %}
-            <div class="meta-row">
-                <i class="bi bi-person-circle"></i>
-                <span>{{ book.user.username }}</span>
-            </div>
-        {% endif %}
-
         {% if book.published_year %}
             <div class="meta-row">
-                <i class="bi bi-calendar3"></i>
                 <span>{{ book.published_year }}</span>
             </div>
         {% endif %}
@@ -42,28 +23,7 @@
         {% endif %}
 
         <div class="tile-footer">
-            <span class="status-badge status-{{ book.status }}">
-                {% if book.status == 'read' %}
-                    <i class="bi bi-check2-circle"></i>
-                {% else %}
-                    <i class="bi bi-bookmark"></i>
-                {% endif %}
-                {{ book.status }}
-            </span>
-
-            {% if book.rating %}
-                <span class="rating" aria-label="{{ book.rating }} out of 5 stars">
-                    {% for star in range(1, 6) %}
-                        {% if star <= book.rating %}
-                            <i class="bi bi-star-fill"></i>
-                        {% else %}
-                            <i class="bi bi-star"></i>
-                        {% endif %}
-                    {% endfor %}
-                </span>
-            {% else %}
-                <span class="text-secondary small fw-semibold">Not rated</span>
-            {% endif %}
+            <span class="status-badge status-{{ book.status }}">{{ book.status }}</span>
         </div>
     </div>
 </a>

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from typing import Annotated
@@ -9,25 +9,38 @@ from sqlalchemy.orm import joinedload, selectinload
 router = APIRouter()
 
 
+async def get_current_user_id(request: Request) -> int | None:
+    user_id = request.session.get("user_id")
+    return int(user_id) if user_id else None
+
+
 @router.get('', response_model=list[booksResponse])
-async def api_books(db : Annotated[AsyncSession, Depends(get_db)]):
-    books = await db.execute(select(Book).options(joinedload(Book.author), selectinload(Book.genres), joinedload(Book.user)))
+async def api_books(request: Request, db : Annotated[AsyncSession, Depends(get_db)]):
+    user_id = await get_current_user_id(request)
+    if not user_id:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Login required")
+
+    books = await db.execute(select(Book).where(Book.user_id == user_id).options(joinedload(Book.author), selectinload(Book.genres), joinedload(Book.user)))
     books = books.scalars().unique().all()
     return books
 
 @router.post('', response_model=booksResponse)
-async def api_create_book(book: booksCreate, db: Annotated[AsyncSession, Depends(get_db)]):
+async def api_create_book(request: Request, book: booksCreate, db: Annotated[AsyncSession, Depends(get_db)]):
+    current_user_id = await get_current_user_id(request)
+    if not current_user_id:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Login required")
+
     author = await db.execute(select(Author).where(Author.author_id == book.author_id))
     author = author.scalar_one_or_none()
     if not author:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Author not found")
-    
-    user = await db.execute(select(User).where(User.user_id == book.user_id))
+
+    user = await db.execute(select(User).where(User.user_id == current_user_id))
     user = user.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     
-    genres = db.execute(select(Genre).where(Genre.genre_id.in_(book.genre_ids)))
+    genres = await db.execute(select(Genre).where(Genre.genre_id.in_(book.genre_ids)))
     genres = genres.scalars().all()
     if len(genres) != len(book.genre_ids):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="One or more genres not found")
@@ -128,11 +141,12 @@ async def update_book_partial(book_id: int, book_update: booksUpdate, db: Annota
     await db.refresh(book, attribute_names=['author', 'user', 'genres'])
     return book
 
+
 @router.delete('/{book_id}', status_code=status.HTTP_204_NO_CONTENT)
 async def delete_book(book_id: int, db: Annotated[AsyncSession, Depends(get_db)]):
     book = await db.execute(select(Book).where(Book.book_id == book_id))
     book = book.scalar_one_or_none()
     if not book:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found")
-    db.delete(book)
-    db.commit()
+    await db.delete(book)
+    await db.commit()

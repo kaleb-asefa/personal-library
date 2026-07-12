@@ -5,13 +5,12 @@
 {% block content %}
     <section class="form-layout form-layout-wide">
         <div class="form-intro">
-            <p class="eyebrow">Books</p>
             <h1>Add book</h1>
-            <p class="page-lede">Attach a book to a reader, author, year, and one or more genres.</p>
+            <p class="page-lede">Log a book in your shelf.</p>
         </div>
 
         <form class="action-form" data-api-form="add-book" hx-boost="false">
-            <div class="form-alert" data-form-message hidden></div>
+            <input type="hidden" name="user_id" value="{{ current_user.user_id }}">
 
             <label class="field-group">
                 <span>Title</span>
@@ -19,16 +18,6 @@
             </label>
 
             <div class="form-row">
-                <label class="field-group">
-                    <span>User</span>
-                    <select class="form-select" name="user_id" required>
-                        <option value="">Choose user</option>
-                        {% for user in users %}
-                            <option value="{{ user.user_id }}">{{ user.username }}</option>
-                        {% endfor %}
-                    </select>
-                </label>
-
                 <label class="field-group">
                     <span>Author</span>
                     <select class="form-select" name="author_id" required>
@@ -57,10 +46,7 @@
                 </div>
             </fieldset>
 
-            <button class="btn btn-dark submit-button" type="submit">
-                <i class="bi bi-plus-lg"></i>
-                Add Book
-            </button>
+            <button class="btn btn-dark submit-button" type="submit">Add</button>
         </form>
     </section>
 {% endblock %}

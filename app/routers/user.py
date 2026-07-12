@@ -1,15 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Form
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from typing import Annotated
+from fastapi.responses import RedirectResponse
 from ...orm import User, get_db, Book
-from ..schema import UserCreate, booksResponse, UserUpdate, publicUserResponse, privateUserResponse, Token
-from sqlalchemy.orm import joinedload
-from datetime import timedelta
-from fastapi.security import OAuth2PasswordRequestForm
+from ..schema import UserCreate, booksResponse, UserUpdate, publicUserResponse, privateUserResponse
+from sqlalchemy.orm import joinedload, selectinload
 from sqlalchemy import func
-from ..auth import create_access_token, verify_access_token, hash_password, verify_password, oauth2_scheme
-from ..config import settings
+from ..auth import hash_password, verify_password
 
 
 
@@ -35,45 +33,55 @@ async def create_user(user: UserCreate, db: Annotated[AsyncSession, Depends(get_
     return new_user
 
 
-@router.post("/token", response_model=Token)
-async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: Annotated[AsyncSession, Depends(get_db)]):
-    result = await db.execute(select(User).where(func.lower(User.email) == form_data.username.lower()))
+@router.post("/session/login", include_in_schema=False)
+async def login_session(
+    request: Request,
+    email: Annotated[str, Form(...)],
+    password: Annotated[str, Form(...)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    result = await db.execute(select(User).where(func.lower(User.email) == email.lower()))
     user = result.scalar_one_or_none()
-    if not user or not verify_password(form_data.password, user.password_hash):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
-    access_token = create_access_token(data={"sub": str(user.user_id)}, expires_delta=access_token_expires)
-    return Token(access_token=access_token, token_type="bearer")
+    if not user or not verify_password(password, user.password_hash):
+        return RedirectResponse(url="/login?error=1", status_code=status.HTTP_303_SEE_OTHER)
+
+    request.session["user_id"] = user.user_id
+    request.session["username"] = user.username
+    request.session["email"] = user.email
+    return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
 
 
-@router.get("/me", response_model=privateUserResponse)
-async def read_users_me(token: Annotated[str, Depends(oauth2_scheme)], db: Annotated[AsyncSession, Depends(get_db)]):
-    user_id = verify_access_token(token)
-    if user_id is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    
-    try:
-        user_id = int(user_id)
-    except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid user ID in token",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    
-    result = await db.execute(select(User).where(User.user_id == user_id))
-    user = result.scalar_one_or_none()
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-    return user
+@router.post("/session/logout", include_in_schema=False)
+async def logout_session(request: Request):
+    request.session.clear()
+    return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@router.post("/signup", include_in_schema=False)
+async def signup_session(
+    request: Request,
+    username: Annotated[str, Form(...)],
+    email: Annotated[str, Form(...)],
+    password: Annotated[str, Form(...)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    result = await db.execute(select(User).where(func.lower(User.username) == username.lower()))
+    if result.first():
+        return RedirectResponse(url="/users/new?error=username", status_code=status.HTTP_303_SEE_OTHER)
+
+    result = await db.execute(select(User).where(func.lower(User.email) == email.lower()))
+    if result.first():
+        return RedirectResponse(url="/users/new?error=email", status_code=status.HTTP_303_SEE_OTHER)
+
+    new_user = User(username=username.strip(), email=email.lower().strip(), password_hash=hash_password(password))
+    db.add(new_user)
+    await db.commit()
+    await db.refresh(new_user)
+
+    request.session["user_id"] = new_user.user_id
+    request.session["username"] = new_user.username
+    request.session["email"] = new_user.email
+    return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
 
 
 
@@ -93,7 +101,8 @@ async def get_user_books(user_id: int, db: Annotated[AsyncSession, Depends(get_d
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     
-    books = db.execute(select(Book).where(Book.user_id == user_id).options(joinedload(Book.author), joinedload(Book.genres))).scalars().unique().all()
+    books = await db.execute(select(Book).where(Book.user_id == user_id).options(joinedload(Book.author), joinedload(Book.genres), joinedload(Book.user)))
+    books = books.scalars().unique().all()
     return books
 
 @router.patch("/{user_id}", response_model=privateUserResponse)

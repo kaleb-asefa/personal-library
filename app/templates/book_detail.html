@@ -4,88 +4,33 @@
 
 {% block content %}
     <section class="book-record">
-        <a class="back-link" href="/">
-            <i class="bi bi-arrow-left"></i>
-            Back to books
-        </a>
-
+        <a class="back-link" href="/">Back</a>
         <div class="book-record-panel">
-            <div class="book-spine cover-{{ (book.book_id % 5) + 1 }}" aria-hidden="true">
-                <span>{{ book.title }}</span>
-            </div>
-
             <div class="book-record-main">
                 <div class="book-record-header">
-                    <div>
-                        <p class="eyebrow">Book details</p>
-                        <h1>{{ book.title }}</h1>
-                    </div>
-                    <span class="status-badge status-{{ book.status }}">
-                        {% if book.status == 'read' %}
-                            <i class="bi bi-check2-circle"></i>
-                        {% else %}
-                            <i class="bi bi-bookmark"></i>
-                        {% endif %}
-                        {{ book.status }}
-                    </span>
+                    <h1>{{ book.title }}</h1>
+                    <span class="status-badge status-{{ book.status }}">{{ book.status }}</span>
                 </div>
 
                 <div class="record-meta">
-                    <div>
-                        <span>Author</span>
-                        <strong>{{ book.author.name }}</strong>
-                    </div>
-                    <div>
-                        <span>Owner</span>
-                        <strong><a href="/users/{{ book.user.user_id }}">{{ book.user.username }}</a></strong>
-                    </div>
-                    <div>
-                        <span>Published</span>
-                        <strong>{{ book.published_year }}</strong>
-                    </div>
-                    <div>
-                        <span>Rating</span>
-                        <strong>
-                            {% if book.rating %}
-                                <span class="rating" aria-label="{{ book.rating }} out of 5 stars">
-                                    {% for star in range(1, 6) %}
-                                        {% if star <= book.rating %}
-                                            <i class="bi bi-star-fill"></i>
-                                        {% else %}
-                                            <i class="bi bi-star"></i>
-                                        {% endif %}
-                                    {% endfor %}
-                                </span>
-                            {% else %}
-                                Not rated
-                            {% endif %}
-                        </strong>
-                    </div>
+                    <div><span>Author</span><strong>{{ book.author.name }}</strong></div>
+                    <div><span>Year</span><strong>{{ book.published_year }}</strong></div>
+                    <div><span>Rating</span><strong>{{ book.rating }}/5</strong></div>
                 </div>
 
                 {% if book.genres %}
-                    <div class="record-section">
-                        <span>Genres</span>
-                        <div class="genre-list detail-genres" aria-label="Genres">
-                            {% for genre in book.genres %}
-                                <span class="genre-pill">{{ genre.name }}</span>
-                            {% endfor %}
-                        </div>
+                    <div class="genre-list detail-genres">
+                        {% for genre in book.genres %}
+                            <span class="genre-pill">{{ genre.name }}</span>
+                        {% endfor %}
                     </div>
                 {% endif %}
-            </div>
 
-            <aside class="record-actions" aria-label="Book actions">
-                <span>Manage</span>
-                <a class="btn btn-dark" href="/books/{{ book.book_id }}/edit">
-                    <i class="bi bi-pencil-square"></i>
-                    Edit
-                </a>
-                <button class="btn btn-outline-danger" type="button" data-api-delete="book" data-id="{{ book.book_id }}" data-redirect="/">
-                    <i class="bi bi-trash3"></i>
-                    Delete
-                </button>
-            </aside>
+                <div class="record-actions compact-actions">
+                    <a class="btn btn-dark" href="/books/{{ book.book_id }}/edit">Edit</a>
+                    <button class="btn btn-outline-danger" type="button" data-api-delete="book" data-id="{{ book.book_id }}" data-redirect="/">Delete</button>
+                </div>
+            </div>
         </div>
     </section>
 {% endblock %}

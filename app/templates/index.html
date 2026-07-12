@@ -6,70 +6,18 @@
     {% set read_books = books | selectattr('status', 'equalto', 'read') | list %}
     {% set unread_books = books | selectattr('status', 'equalto', 'unread') | list %}
     {% set total_books = books | length %}
-    {% set completion = 0 if total_books == 0 else ((read_books | length) * 100 / total_books) | round | int %}
 
     <section class="dashboard-hero">
-        <div class="dashboard-hero-copy">
-            <p class="eyebrow">My shelf</p>
-            <h1>Track what you read, what you are reading, and what still waits on the shelf.</h1>
-            <p class="page-lede">A personal library dashboard for keeping tabs on books, progress, and the people reading them.</p>
-        </div>
-
-        <div class="dashboard-hero-actions">
-            <a class="btn btn-dark" href="/books/new">
-                <i class="bi bi-plus-lg"></i>
-                Add Book
-            </a>
-            <a class="btn btn-outline-dark" href="/users">
-                <i class="bi bi-people"></i>
-                Readers
-            </a>
-        </div>
-    </section>
-
-    <section class="dashboard-stats" aria-label="Library stats">
-        <article class="stat-panel stat-panel-accent">
-            <span>Books tracked</span>
-            <strong>{{ total_books }}</strong>
-            <small>Everything in your library</small>
-        </article>
-        <article class="stat-panel">
-            <span>Finished</span>
-            <strong>{{ read_books | length }}</strong>
-            <small>Marked as read</small>
-        </article>
-        <article class="stat-panel">
-            <span>On deck</span>
-            <strong>{{ unread_books | length }}</strong>
-            <small>Waiting to be finished</small>
-        </article>
-        <article class="stat-panel">
-            <span>Completion</span>
-            <strong>{{ completion }}%</strong>
-            <small>Read shelf progress</small>
-        </article>
-    </section>
-
-    <section class="progress-banner">
         <div>
-            <p class="eyebrow">Reading rhythm</p>
-            <h2>Your shelf is {{ completion }}% complete.</h2>
+            <h1>{{ current_user.username }}</h1>
+            <p class="page-lede">{{ total_books }} books · {{ read_books | length }} read</p>
         </div>
-        <div class="progress-track" aria-hidden="true">
-            <span style="width: {{ completion }}%"></span>
-        </div>
+        <a class="btn btn-dark" href="/books/new">Add</a>
     </section>
 
     <section class="shelf-layout">
         <article class="shelf-panel">
-            <div class="section-header">
-                <div>
-                    <p class="eyebrow">Reading now</p>
-                    <h2>Unfinished books</h2>
-                </div>
-                <span class="mini-stat">{{ unread_books | length }}</span>
-            </div>
-
+            <div class="section-header"><h2>Reading</h2></div>
             {% if unread_books %}
                 <div class="book-grid compact-grid">
                     {% for book in unread_books %}
@@ -77,23 +25,12 @@
                     {% endfor %}
                 </div>
             {% else %}
-                <section class="empty-state compact-empty">
-                    <i class="bi bi-bookmark-check"></i>
-                    <h2>Nothing waiting</h2>
-                    <p>Every book in the shelf has been marked as read.</p>
-                </section>
+                <section class="empty-state compact-empty"><h2>Nothing here</h2></section>
             {% endif %}
         </article>
 
         <article class="shelf-panel">
-            <div class="section-header">
-                <div>
-                    <p class="eyebrow">Finished shelf</p>
-                    <h2>Books you completed</h2>
-                </div>
-                <span class="mini-stat">{{ read_books | length }}</span>
-            </div>
-
+            <div class="section-header"><h2>Finished</h2></div>
             {% if read_books %}
                 <div class="book-grid compact-grid">
                     {% for book in read_books %}
@@ -101,11 +38,7 @@
                     {% endfor %}
                 </div>
             {% else %}
-                <section class="empty-state compact-empty">
-                    <i class="bi bi-journal-check"></i>
-                    <h2>No finished books yet</h2>
-                    <p>Mark a few titles as read and they will collect here.</p>
-                </section>
+                <section class="empty-state compact-empty"><h2>No finished books</h2></section>
             {% endif %}
         </article>
     </section>
