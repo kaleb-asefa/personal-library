@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}Login | Personal Library{% endblock %}
+
+{% block content %}
+    <section class="auth-layout">
+        <div class="auth-copy">
+            <p class="eyebrow">Access</p>
+            <h1>Sign in</h1>
+            <p class="page-lede">A clean placeholder login page for learning FastAPI. The auth wiring can be added later.</p>
+
+            <div class="auth-points">
+                <div class="auth-point">
+                    <i class="bi bi-journal-bookmark"></i>
+                    <div>
+                        <strong>Simple structure</strong>
+                        <p>Keep the endpoint, template, and UI separate.</p>
+                    </div>
+                </div>
+                <div class="auth-point">
+                    <i class="bi bi-shield-lock"></i>
+                    <div>
+                        <strong>Auth later</strong>
+                        <p>Drop in token handling when you are ready.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <form class="action-form auth-card" hx-boost="false">
+            <div class="auth-card-header">
+                <p class="eyebrow">Welcome back</p>
+                <h2>Login form</h2>
+                <p>Fields are ready for the backend connection you will add later.</p>
+            </div>
+
+            <label class="field-group">
+                <span>Email</span>
+                <input class="form-control" type="email" name="email" placeholder="name@example.com" autocomplete="email" required>
+            </label>
+
+            <label class="field-group">
+                <span>Password</span>
+                <input class="form-control" type="password" name="password" placeholder="Your password" autocomplete="current-password" required>
+            </label>
+
+            <div class="auth-actions">
+                <button class="btn btn-dark submit-button" type="submit">
+                    <i class="bi bi-box-arrow-in-right"></i>
+                    Sign In
+                </button>
+                <a class="btn btn-outline-dark submit-button" href="/users/new">
+                    <i class="bi bi-person-plus"></i>
+                    Create Account
+                </a>
+            </div>
+        </form>
+    </section>
+{% endblock %}

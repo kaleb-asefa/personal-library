@@ -58,6 +58,14 @@ async def users_page(request: Request, db: Annotated[AsyncSession, Depends(get_d
 def create_user_page(request: Request):
     return templates.TemplateResponse(request, "create_user.html")
 
+@app.get("/login", response_class=HTMLResponse, include_in_schema=False)
+def login_page(request: Request):
+    return templates.TemplateResponse(request, "login.html")
+
+@app.get("/logout", response_class=HTMLResponse, include_in_schema=False)
+def logout_page(request: Request):
+    return templates.TemplateResponse(request, "logout.html")
+
 @app.get("/users/{user_id}/edit", response_class=HTMLResponse, include_in_schema=False)
 async def edit_user_page(user_id: int, request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
     user = await db.execute(select(User).where(User.user_id == user_id))

@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}Logout | Personal Library{% endblock %}
+
+{% block content %}
+    <section class="auth-layout auth-layout-single">
+        <div class="auth-copy">
+            <p class="eyebrow">Session</p>
+            <h1>Logout</h1>
+            <p class="page-lede">This page is just the template endpoint for now. You can wire the session clearing later.</p>
+        </div>
+
+        <div class="auth-card auth-card-center">
+            <div class="auth-card-header">
+                <p class="eyebrow">Confirm</p>
+                <h2>Ready to sign out?</h2>
+                <p>When you add auth, this is where your logout action can live.</p>
+            </div>
+
+            <div class="auth-note">
+                <i class="bi bi-info-circle"></i>
+                <span>For now this is a UI placeholder with no auth logic attached.</span>
+            </div>
+
+            <div class="auth-actions">
+                <a class="btn btn-dark submit-button" href="/">
+                    <i class="bi bi-house"></i>
+                    Back Home
+                </a>
+                <a class="btn btn-outline-dark submit-button" href="/login">
+                    <i class="bi bi-box-arrow-in-right"></i>
+                    Go to Login
+                </a>
+            </div>
+        </div>
+    </section>
+{% endblock %}

@@ -40,6 +40,14 @@
                 <i class="bi bi-plus-square"></i>
                 <span>Add Book</span>
             </a>
+            <a data-nav-link class="nav-link-pill {{ 'is-active' if active_path == '/login' else '' }}" href="/login" {% if active_path == '/login' %}aria-current="page"{% endif %}>
+                <i class="bi bi-box-arrow-in-right"></i>
+                <span>Login</span>
+            </a>
+            <a data-nav-link class="nav-link-pill {{ 'is-active' if active_path == '/logout' else '' }}" href="/logout" {% if active_path == '/logout' %}aria-current="page"{% endif %}>
+                <i class="bi bi-box-arrow-right"></i>
+                <span>Logout</span>
+            </a>
             <a data-nav-link class="nav-link-pill nav-link-strong {{ 'is-active' if active_path == '/users/new' else '' }}" href="/users/new" {% if active_path == '/users/new' %}aria-current="page"{% endif %}>
                 <i class="bi bi-person-plus"></i>
                 <span>New User</span>
