@@ -3,37 +3,25 @@
 {% block title %}Logout | Personal Library{% endblock %}
 
 {% block content %}
-    <section class="auth-layout auth-layout-single logout-layout">
-        <div class="auth-copy auth-copy-dark">
-            <p class="eyebrow">Session</p>
-            <h1>Log out</h1>
-            <p class="page-lede">Clear the current shelf session from this browser.</p>
-        </div>
+    <section class="auth-page">
+        <form class="auth-card auth-card-slim" data-api-form="logout" hx-boost="false">
+            <div class="auth-card-header auth-card-header-tight">
+                <p class="eyebrow">Reading Shelf</p>
+                <h1>Logout</h1>
+            </div>
 
-        <form class="action-form auth-card auth-card-center" data-api-form="logout" hx-boost="false">
             <div class="form-alert" data-form-message hidden></div>
 
-            <div class="auth-card-header">
-                <p class="eyebrow">Confirm</p>
-                <h2>End session</h2>
-                <p>This clears the saved login state on this device.</p>
-            </div>
+            <p class="auth-muted">This clears the current session on this device.</p>
 
-            <div class="auth-note">
-                <i class="bi bi-shield-check"></i>
-                <span>Your library stays intact. Only the browser session is removed.</span>
-            </div>
+            <button class="btn btn-dark submit-button auth-submit" type="submit">
+                <i class="bi bi-box-arrow-right"></i>
+                Logout
+            </button>
 
-            <div class="auth-actions">
-                <button class="btn btn-dark submit-button" type="submit">
-                    <i class="bi bi-box-arrow-right"></i>
-                    Log Out
-                </button>
-                <a class="btn btn-outline-dark submit-button" href="/">
-                    <i class="bi bi-house"></i>
-                    Home
-                </a>
-            </div>
+            <a class="btn btn-outline-dark submit-button auth-secondary" href="/">
+                Home
+            </a>
         </form>
     </section>
 {% endblock %}

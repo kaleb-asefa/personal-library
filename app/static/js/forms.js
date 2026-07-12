@@ -211,13 +211,6 @@ const fetchAuthUser = async () => {
 const syncAuthState = async () => {
     const { user } = readStoredAuth();
     updateAuthUI(user);
-
-    try {
-        await fetchAuthUser();
-    } catch {
-        clearAuth();
-        updateAuthUI(null);
-    }
 };
 
 const handleCreateUser = async (form) => {
@@ -237,34 +230,32 @@ const handleCreateUser = async (form) => {
 
 const handleLogin = async (form) => {
     const formData = new FormData(form);
+    const email = String(formData.get("email") || "").trim();
     const payload = {
-        username: formData.get("email"),
+        username: email,
         password: formData.get("password"),
     };
 
     const tokenResponse = await submitFormUrlEncoded("/api/users/token", payload);
     const token = tokenResponse.access_token;
+    const user = {
+        username: email.split("@")[0] || email,
+        email,
+    };
 
-    window.localStorage.setItem(AUTH_STORAGE_KEYS.token, token);
-    const user = await fetchAuthUser();
-
-    if (!user) {
-        throw new Error("Could not load profile.");
-    }
-
-    showMessage(form, "success", `Signed in as ${user.username}.`);
+    saveAuth({ token, user });
+    updateAuthUI(user);
     window.setTimeout(() => {
         visitPage("/");
-    }, 350);
+    }, 150);
 };
 
 const handleLogout = async (form) => {
     clearAuth();
     updateAuthUI(null);
-    showMessage(form, "success", "Signed out.");
     window.setTimeout(() => {
         visitPage("/");
-    }, 350);
+    }, 150);
 };
 
 const handleAddBook = async (form) => {
@@ -383,6 +374,15 @@ document.body.addEventListener("submit", async (event) => {
 });
 
 document.body.addEventListener("click", async (event) => {
+    const authLogout = event.target.closest("[data-auth-logout]");
+    if (authLogout) {
+        event.preventDefault();
+        clearAuth();
+        updateAuthUI(null);
+        visitPage("/");
+        return;
+    }
+
     const button = event.target.closest("[data-api-delete]");
     if (!button) return;
 
