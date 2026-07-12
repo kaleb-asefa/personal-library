@@ -17,17 +17,10 @@
                 <input class="form-control" name="title" type="text" maxlength="255" required>
             </label>
 
-            <div class="form-row">
-                <label class="field-group">
-                    <span>Author</span>
-                    <select class="form-select" name="author_id" required>
-                        <option value="">Choose author</option>
-                        {% for author in authors %}
-                            <option value="{{ author.author_id }}">{{ author.name }}</option>
-                        {% endfor %}
-                    </select>
-                </label>
-            </div>
+            <label class="field-group">
+                <span>Author</span>
+                <input class="form-control" name="author_name" type="text" maxlength="255" required>
+            </label>
 
             <label class="field-group">
                 <span>Published year</span>

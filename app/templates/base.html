@@ -20,6 +20,7 @@
 >
     {% set active_path = request.url.path %}
     {% set current_user_name = request.session.get('username') %}
+    {% set current_user_email = request.session.get('email') %}
     <div id="route-loader" class="route-loader htmx-indicator"></div>
 
     <nav class="app-nav">
@@ -39,7 +40,10 @@
             {% if current_user_name %}
                 <div class="auth-user-chip">
                     <div class="auth-avatar">{{ current_user_name[:1]|upper }}</div>
-                    <strong>{{ current_user_name }}</strong>
+                    <div class="auth-user-copy">
+                        <strong>{{ current_user_name }}</strong>
+                        <span>{{ current_user_email }}</span>
+                    </div>
                     <form action="/api/users/session/logout" method="post">
                         <button class="auth-logout-button" type="submit">Logout</button>
                     </form>

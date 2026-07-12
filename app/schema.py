@@ -56,14 +56,14 @@ class booksResponse(booksBase):
 
 class booksCreate(BaseModel):
     title: str = Field(min_length=1, max_length=255)
-    author_id: int
+    author_name: str = Field(min_length=1, max_length=255)
     published_year: int
     user_id: int
     genre_ids: list[int]  # List of genre IDs to associate with the book
 
 class booksUpdate(BaseModel):
     title: str | None = Field(default=None, min_length=1, max_length=255)
-    author_id: int | None = None
+    author_name: str | None = Field(default=None, min_length=1, max_length=255)
     user_id: int | None = None
     published_year: int | None = None
     status: str | None = Field(default=None, min_length=1, max_length=255)

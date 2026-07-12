@@ -13,7 +13,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import joinedload, selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..orm import Book, Author, Genre, get_db, User, Base, engine
+from ..orm import Book, Genre, get_db, User, Base, engine
 from .config import settings
 
 from .routers import user, books
@@ -147,8 +147,6 @@ async def add_book_page(request: Request, db: Annotated[AsyncSession, Depends(ge
     if not user_id:
         return templates.TemplateResponse(request, "login.html", {"show_home_link": False})
 
-    authors = await db.execute(select(Author).order_by(Author.name))
-    authors = authors.scalars().all()
     genres = await db.execute(select(Genre).order_by(Genre.name))
     genres = genres.scalars().all()
     user = await db.execute(select(User).where(User.user_id == user_id))
@@ -156,7 +154,7 @@ async def add_book_page(request: Request, db: Annotated[AsyncSession, Depends(ge
     return templates.TemplateResponse(
         request,
         "add_book.html",
-        {"authors": authors, "genres": genres, "current_user": user, "current_user_id": user.user_id},
+        {"genres": genres, "current_user": user, "current_user_id": user.user_id},
     )
 
 @app.get("/books/{book_id}", response_class=HTMLResponse, include_in_schema=False)
@@ -186,8 +184,6 @@ async def edit_book_page(book_id: int, request: Request, db: Annotated[AsyncSess
     if not book:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found")
     
-    authors = await db.execute(select(Author).order_by(Author.name))
-    authors = authors.scalars().all()
     genres = await db.execute(select(Genre).order_by(Genre.name))
     genres = genres.scalars().all()
     user = await db.execute(select(User).where(User.user_id == user_id))
@@ -198,7 +194,6 @@ async def edit_book_page(book_id: int, request: Request, db: Annotated[AsyncSess
         "edit_book.html",
         {
             "book": book,
-            "authors": authors,
             "genres": genres,
             "current_user": user,
             "current_user_id": user.user_id,

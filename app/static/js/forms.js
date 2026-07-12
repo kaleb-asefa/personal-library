@@ -108,7 +108,7 @@ const handleAddBook = async (form) => {
 
     const payload = {
         title: formData.get("title"),
-        author_id: Number(formData.get("author_id")),
+        author_name: formData.get("author_name"),
         published_year: Number(formData.get("published_year")),
         user_id: Number(formData.get("user_id")),
         genre_ids: genreIds,
@@ -153,7 +153,7 @@ const handleUpdateBook = async (form) => {
 
     const payload = {
         title: formData.get("title"),
-        author_id: Number(formData.get("author_id")),
+        author_name: formData.get("author_name"),
         user_id: Number(formData.get("user_id")),
         published_year: Number(formData.get("published_year")),
         status: formData.get("status"),

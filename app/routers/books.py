@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy import func
 from typing import Annotated
 from ...orm import Book, get_db, Author, Genre, User
 from ..schema import booksResponse, booksCreate, booksUpdate
@@ -12,6 +13,19 @@ router = APIRouter()
 async def get_current_user_id(request: Request) -> int | None:
     user_id = request.session.get("user_id")
     return int(user_id) if user_id else None
+
+
+async def resolve_author(db: AsyncSession, author_name: str) -> Author:
+    cleaned_name = author_name.strip()
+    result = await db.execute(select(Author).where(func.lower(Author.name) == cleaned_name.lower()))
+    author = result.scalar_one_or_none()
+    if author:
+        return author
+
+    author = Author(name=cleaned_name, country="")
+    db.add(author)
+    await db.flush()
+    return author
 
 
 @router.get('', response_model=list[booksResponse])
@@ -30,10 +44,7 @@ async def api_create_book(request: Request, book: booksCreate, db: Annotated[Asy
     if not current_user_id:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Login required")
 
-    author = await db.execute(select(Author).where(Author.author_id == book.author_id))
-    author = author.scalar_one_or_none()
-    if not author:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Author not found")
+    author = await resolve_author(db, book.author_name)
 
     user = await db.execute(select(User).where(User.user_id == current_user_id))
     user = user.scalar_one_or_none()
@@ -80,10 +91,7 @@ async def update_book_full(book_id: int, book_update: booksCreate, db: Annotated
     if not book:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found")
     
-    author = await db.execute(select(Author).where(Author.author_id == book_update.author_id))
-    author = author.scalar_one_or_none()
-    if not author:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Author not found")
+    author = await resolve_author(db, book_update.author_name)
     
     user = await db.execute(select(User).where(User.user_id == book_update.user_id))
     user = user.scalar_one_or_none()
@@ -114,12 +122,8 @@ async def update_book_partial(book_id: int, book_update: booksUpdate, db: Annota
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found")
     updated_data = book_update.model_dump(exclude_unset=True)
 
-    if 'author_id' in updated_data:
-        author = await db.execute(select(Author).where(Author.author_id == updated_data['author_id']))
-        author = author.scalar_one_or_none()
-        if not author:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Author not found")
-        book.author = author
+    if 'author_name' in updated_data:
+        book.author = await resolve_author(db, updated_data['author_name'])
 
     if 'user_id' in updated_data:
         user = await db.execute(select(User).where(User.user_id == updated_data['user_id']))
@@ -135,7 +139,7 @@ async def update_book_partial(book_id: int, book_update: booksUpdate, db: Annota
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="One or more genres not found")
         book.genres = genres
     for key, value in updated_data.items():
-        if key not in ['author_id', 'user_id', 'genre_ids']:
+        if key not in ['author_name', 'user_id', 'genre_ids']:
             setattr(book, key, value)
     await db.commit()
     await db.refresh(book, attribute_names=['author', 'user', 'genres'])
