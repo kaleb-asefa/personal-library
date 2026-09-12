@@ -74,6 +74,12 @@ const getActiveNavHref = (pathname) => {
     if (pathname === "/books/new") return "/books/new";
     if (pathname === "/login") return "/login";
     if (pathname === "/logout") return "/logout";
+    if (sessionUser && [
+        `/users/${sessionUser.user_id}/edit`,
+        `/users/${sessionUser.user_id}/delete`,
+    ].includes(pathname)) {
+        return `/users/${sessionUser.user_id}/edit`;
+    }
     if (sessionUser && pathname === `/users/${sessionUser.user_id}`) return `/users/${sessionUser.user_id}`;
     if (sessionUser && (pathname === `/users/${sessionUser.user_id}/books` || pathname.startsWith("/books/"))) {
         return `/users/${sessionUser.user_id}/books`;
@@ -131,6 +137,7 @@ const applySessionToPage = () => {
         const sessionLinks = {
             shelf: `/users/${sessionUser.user_id}/books`,
             profile: `/users/${sessionUser.user_id}`,
+            settings: `/users/${sessionUser.user_id}/edit`,
         };
         document.querySelectorAll("[data-session-link]").forEach((link) => {
             link.href = sessionLinks[link.dataset.sessionLink];
@@ -262,6 +269,19 @@ const handleUpdateUser = async (form) => {
     }, 500);
 };
 
+const handleDeleteUser = async (form) => {
+    const formData = new FormData(form);
+    const confirmation = formData.get("username_confirmation");
+
+    if (confirmation !== form.dataset.username) {
+        throw new Error(`Type ${form.dataset.username} exactly to confirm.`);
+    }
+
+    await deleteJson(`/api/users/${form.dataset.userId}`);
+    sessionUser = null;
+    window.location.replace("/login?account_deleted=1");
+};
+
 const handleUpdateBook = async (form) => {
     const formData = new FormData(form);
     const bookId = form.dataset.bookId;
@@ -312,6 +332,10 @@ document.body.addEventListener("submit", async (event) => {
 
         if (formType === "update-user") {
             await handleUpdateUser(form);
+        }
+
+        if (formType === "delete-user") {
+            await handleDeleteUser(form);
         }
 
         if (formType === "update-book") {

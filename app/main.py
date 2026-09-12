@@ -70,6 +70,12 @@ async def edit_user_page(user_id: int, request: Request, current_user: CurrentUs
     require_owner(user_id, current_user)
     return templates.TemplateResponse(request, "edit_user.html", {"user": current_user})
 
+
+@app.get("/users/{user_id}/delete", response_class=HTMLResponse, include_in_schema=False)
+async def delete_user_page(user_id: int, request: Request, current_user: CurrentUser):
+    require_owner(user_id, current_user)
+    return templates.TemplateResponse(request, "delete_user.html", {"user": current_user})
+
 @app.get("/users/{user_id}", response_class=HTMLResponse, include_in_schema=False)
 async def user_detail_page(
     user_id: int,

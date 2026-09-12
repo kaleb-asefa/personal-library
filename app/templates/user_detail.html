@@ -27,10 +27,10 @@
                 <i class="bi bi-plus-lg"></i>
                 Add Book
             </a>
-            <button class="btn btn-outline-danger" type="button" data-api-delete="user" data-id="{{ user.user_id }}" data-redirect="/login">
+            <a class="btn btn-outline-danger" href="/users/{{ user.user_id }}/delete">
                 <i class="bi bi-trash3"></i>
-                Delete
-            </button>
+                Delete Account
+            </a>
         </div>
     </section>
 

@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}Delete Account | Personal Library{% endblock %}
+
+{% block content %}
+    <section class="form-layout" data-auth-required data-owner-id="{{ user.user_id }}">
+        <div class="form-intro">
+            <p class="eyebrow">Danger zone</p>
+            <h1>Delete account</h1>
+            <p class="page-lede">This permanently removes your profile and every book on your shelf. This action cannot be undone.</p>
+        </div>
+
+        <form
+            class="action-form delete-account-form"
+            data-api-form="delete-user"
+            data-user-id="{{ user.user_id }}"
+            data-username="{{ user.username }}"
+            hx-boost="false"
+        >
+            <div class="form-alert" data-form-message hidden></div>
+
+            <div class="danger-summary">
+                <i class="bi bi-exclamation-triangle"></i>
+                <div>
+                    <strong>Your entire library will be deleted</strong>
+                    <p>Your account details, reading progress, ratings, and saved books will be removed.</p>
+                </div>
+            </div>
+
+            <label class="field-group">
+                <span>Type <strong>{{ user.username }}</strong> to confirm</span>
+                <input
+                    class="form-control"
+                    name="username_confirmation"
+                    type="text"
+                    autocomplete="off"
+                    spellcheck="false"
+                    required
+                >
+            </label>
+
+            <div class="button-row">
+                <a class="btn btn-outline-dark submit-button" href="/users/{{ user.user_id }}/edit">
+                    <i class="bi bi-arrow-left"></i>
+                    Cancel
+                </a>
+                <button class="btn btn-danger submit-button" type="submit">
+                    <i class="bi bi-trash3"></i>
+                    Permanently Delete
+                </button>
+            </div>
+        </form>
+    </section>
+{% endblock %}

@@ -902,6 +902,35 @@ a {
     color: #8a3938;
 }
 
+.delete-account-form {
+    border-color: rgba(182, 95, 90, 0.42);
+}
+
+.danger-summary {
+    display: grid;
+    grid-template-columns: 32px minmax(0, 1fr);
+    gap: 12px;
+    padding: 14px;
+    border: 1px solid rgba(182, 95, 90, 0.3);
+    border-radius: 8px;
+    background: rgba(182, 95, 90, 0.08);
+}
+
+.danger-summary i {
+    color: var(--rose);
+    font-size: 1.25rem;
+}
+
+.danger-summary strong {
+    display: block;
+    margin-bottom: 4px;
+}
+
+.danger-summary p {
+    margin: 0;
+    color: var(--muted);
+}
+
 .form-footnote {
     margin: -4px 0 0;
     color: var(--muted);
