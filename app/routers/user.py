@@ -8,7 +8,7 @@ from sqlalchemy.orm import joinedload
 from datetime import timedelta
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import func
-from ..auth import create_access_token, verify_access_token, hash_password, verify_password, oauth2_scheme
+from ..auth import create_access_token, verify_access_token, hash_password, verify_password, oauth2_scheme, CurrentUser
 from ..config import settings
 
 
@@ -51,29 +51,8 @@ async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm,
 
 
 @router.get("/me", response_model=privateUserResponse)
-async def read_users_me(token: Annotated[str, Depends(oauth2_scheme)], db: Annotated[AsyncSession, Depends(get_db)]):
-    user_id = verify_access_token(token)
-    if user_id is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    
-    try:
-        user_id = int(user_id)
-    except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid user ID in token",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    
-    result = await db.execute(select(User).where(User.user_id == user_id))
-    user = result.scalar_one_or_none()
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-    return user
+async def read_users_me(current_user: CurrentUser):
+    return current_user
 
 
 

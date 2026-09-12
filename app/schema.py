@@ -57,7 +57,6 @@ class booksResponse(booksBase):
 class booksCreate(BaseModel):
     title: str = Field(min_length=1, max_length=255)
     author_name: str = Field(min_length=1, max_length=255)
-    user_id: int
     published_year: int
     genre_names: list[str] = Field(min_length=1)  # List of genre names to associate with the book
 

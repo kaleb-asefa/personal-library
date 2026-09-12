@@ -78,12 +78,14 @@ AsyncSessionLocal = async_sessionmaker(bind=engine, expire_on_commit=False, clas
 
 
 async def get_db():
+    """Get a new database session."""
     async with AsyncSessionLocal() as session:
         yield session
 
  
 @contextmanager   
 def get_db_session():
+    """Get a new database session for synchronous use."""
     db = AsyncSessionLocal()
     try:
         yield db

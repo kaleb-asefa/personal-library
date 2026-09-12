@@ -5,6 +5,7 @@ from typing import Annotated
 from ...orm import Book, get_db, Author, Genre, User
 from ..schema import booksResponse, booksCreate, booksUpdate
 from sqlalchemy.orm import joinedload, selectinload
+from ..auth import CurrentUser
 
 router = APIRouter()
 
@@ -15,18 +16,14 @@ async def api_books(db : Annotated[AsyncSession, Depends(get_db)]):
     books = books.scalars().unique().all()
     return books
 
-@router.post('', response_model=booksResponse)
-async def api_create_book(book: booksCreate, db: Annotated[AsyncSession, Depends(get_db)]):
+@router.post('', response_model=booksResponse, status_code=status.HTTP_201_CREATED)
+async def api_create_book(book: booksCreate, db: Annotated[AsyncSession, Depends(get_db)], current_user: CurrentUser):
     author = await db.execute(select(Author).where(Author.name == book.author_name))
     author = author.scalar_one_or_none()
     if not author:
         author = Author(name=book.author_name)
         db.add(author)
 
-    user = await db.execute(select(User).where(User.user_id == book.user_id))
-    user = user.scalar_one_or_none()
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     
     genre_result = await db.execute(select(Genre).where(Genre.name.in_(book.genre_names)))
     genres = list(genre_result.scalars().all())
@@ -38,7 +35,7 @@ async def api_create_book(book: booksCreate, db: Annotated[AsyncSession, Depends
     new_book = Book(
         title=book.title,
         author=author,
-        user=user,
+        user=current_user,
         published_year=book.published_year,
         status='unread',
         rating=0,
