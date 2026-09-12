@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from typing import Annotated
@@ -8,7 +8,7 @@ from sqlalchemy.orm import joinedload
 from datetime import timedelta
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import func
-from ..auth import create_access_token, verify_access_token, hash_password, verify_password, oauth2_scheme, CurrentUser
+from ..auth import AUTH_COOKIE_NAME, CurrentUser, create_access_token, hash_password, require_owner, verify_password
 from ..config import settings
 
 
@@ -36,7 +36,11 @@ async def create_user(user: UserCreate, db: Annotated[AsyncSession, Depends(get_
 
 
 @router.post("/token", response_model=Token)
-async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: Annotated[AsyncSession, Depends(get_db)]):
+async def login_for_access_token(
+    response: Response,
+    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
     result = await db.execute(select(User).where(func.lower(User.email) == form_data.username.lower()))
     user = result.scalar_one_or_none()
     if not user or not verify_password(form_data.password, user.password_hash):
@@ -47,7 +51,20 @@ async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm,
         )
     access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
     access_token = create_access_token(data={"sub": str(user.user_id)}, expires_delta=access_token_expires)
+    response.set_cookie(
+        key=AUTH_COOKIE_NAME,
+        value=access_token,
+        httponly=True,
+        max_age=int(access_token_expires.total_seconds()),
+        samesite="lax",
+        secure=False,
+    )
     return Token(access_token=access_token, token_type="bearer")
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+async def logout(response: Response):
+    response.delete_cookie(key=AUTH_COOKIE_NAME, httponly=True, samesite="lax")
 
 
 @router.get("/me", response_model=privateUserResponse)
@@ -57,30 +74,36 @@ async def read_users_me(current_user: CurrentUser):
 
 
 
-@router.get("/{user_id}", response_model=publicUserResponse)
-async def get_user(user_id: int, db: Annotated[AsyncSession, Depends(get_db)]):
-    user = await db.execute(select(User).where(User.user_id == user_id))
-    user = user.scalar_one_or_none()
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-    return user
+@router.get("/{user_id}", response_model=privateUserResponse)
+async def get_user(user_id: int, current_user: CurrentUser):
+    require_owner(user_id, current_user)
+    return current_user
+
 
 @router.get("/{user_id}/books", response_model=list[booksResponse])
-async def get_user_books(user_id: int, db: Annotated[AsyncSession, Depends(get_db)]):
-    user = await db.execute(select(User).where(User.user_id == user_id))
-    user = user.scalar_one_or_none()
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-    
-    books = db.execute(select(Book).where(Book.user_id == user_id).options(joinedload(Book.author), joinedload(Book.genres))).scalars().unique().all()
-    return books
+async def get_user_books(
+    user_id: int,
+    current_user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    require_owner(user_id, current_user)
+    books = await db.execute(
+        select(Book)
+        .where(Book.user_id == current_user.user_id)
+        .options(joinedload(Book.author), joinedload(Book.genres))
+    )
+    return books.scalars().unique().all()
+
 
 @router.patch("/{user_id}", response_model=privateUserResponse)
-async def update_user(user_id: int, user_update: UserUpdate, db: Annotated[AsyncSession, Depends(get_db)]):
-    user = await db.execute(select(User).where(User.user_id == user_id))
-    user = user.scalar_one_or_none()
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+async def update_user(
+    user_id: int,
+    user_update: UserUpdate,
+    current_user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    require_owner(user_id, current_user)
+    user = current_user
     
 
     if user_update.username and user_update.username.lower() != user.username.lower():
@@ -98,19 +121,22 @@ async def update_user(user_id: int, user_update: UserUpdate, db: Annotated[Async
     if user_update.email:
         user.email = user_update.email.lower()
     if user_update.password:
-        user.password = hash_password(user_update.password)
+        user.password_hash = hash_password(user_update.password)
     if user_update.image_file is not None:
         user.image_file = user_update.image_file
 
     await db.commit()
-    await db.refresh(user, attribute_names=['username', 'email', 'password', 'image_file'])
+    await db.refresh(user, attribute_names=['username', 'email', 'password_hash', 'image_file'])
     return user
 
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_user(user_id: int, db: Annotated[AsyncSession, Depends(get_db)]):
-    user = await db.execute(select(User).where(User.user_id == user_id))
-    user = user.scalar_one_or_none()
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-    await db.delete(user)
+async def delete_user(
+    user_id: int,
+    response: Response,
+    current_user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    require_owner(user_id, current_user)
+    await db.delete(current_user)
     await db.commit()
+    response.delete_cookie(key=AUTH_COOKIE_NAME, httponly=True, samesite="lax")

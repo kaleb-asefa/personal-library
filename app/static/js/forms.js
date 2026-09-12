@@ -1,4 +1,3 @@
-const SESSION_KEY = "personal-library-token";
 let sessionUser = null;
 
 const showMessage = (form, type, text) => {
@@ -18,24 +17,28 @@ const readJson = async (response) => {
     }
 };
 
-const getSessionToken = () => window.localStorage.getItem(SESSION_KEY);
+const getApiError = (response, data, fallback) => {
+    if (response.status === 401) {
+        sessionUser = null;
+        const nextUrl = encodeURIComponent(window.location.pathname);
+        window.location.assign(`/login?next=${nextUrl}`);
+    }
 
-const getAuthHeaders = () => {
-    const token = getSessionToken();
-    return token ? { Authorization: `Bearer ${token}` } : {};
+    const message = data.message || data.detail || fallback;
+    return new Error(typeof message === "string" ? message : "Validation error.");
 };
 
 const submitJson = async (url, payload) => {
     const response = await fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
         body: JSON.stringify(payload),
     });
     const data = await readJson(response);
 
     if (!response.ok) {
-        const message = data.message || data.detail || "Something went wrong.";
-        throw new Error(typeof message === "string" ? message : "Validation error.");
+        throw getApiError(response, data, "Something went wrong.");
     }
 
     return data;
@@ -44,26 +47,25 @@ const submitJson = async (url, payload) => {
 const updateJson = async (url, payload) => {
     const response = await fetch(url, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
         body: JSON.stringify(payload),
     });
     const data = await readJson(response);
 
     if (!response.ok) {
-        const message = data.message || data.detail || "Something went wrong.";
-        throw new Error(typeof message === "string" ? message : "Validation error.");
+        throw getApiError(response, data, "Something went wrong.");
     }
 
     return data;
 };
 
 const deleteJson = async (url) => {
-    const response = await fetch(url, { method: "DELETE", headers: getAuthHeaders() });
+    const response = await fetch(url, { method: "DELETE", credentials: "same-origin" });
 
     if (!response.ok) {
         const data = await readJson(response);
-        const message = data.message || data.detail || "Something went wrong.";
-        throw new Error(typeof message === "string" ? message : "Delete failed.");
+        throw getApiError(response, data, "Delete failed.");
     }
 };
 
@@ -99,6 +101,7 @@ const login = async (email, password) => {
     const response = await fetch("/api/users/token", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        credentials: "same-origin",
         body,
     });
     const data = await readJson(response);
@@ -107,18 +110,11 @@ const login = async (email, password) => {
         throw new Error(typeof data.detail === "string" ? data.detail : "Unable to sign in.");
     }
 
-    window.localStorage.setItem(SESSION_KEY, data.access_token);
 };
 
 const loadSessionUser = async () => {
-    const token = getSessionToken();
-    if (!token) return null;
-
-    const response = await fetch("/api/users/me", { headers: getAuthHeaders() });
-    if (!response.ok) {
-        window.localStorage.removeItem(SESSION_KEY);
-        return null;
-    }
+    const response = await fetch("/api/users/me", { credentials: "same-origin" });
+    if (!response.ok) return null;
 
     return readJson(response);
 };
@@ -235,7 +231,6 @@ const handleAddBook = async (form) => {
         title: formData.get("title"),
         author_name: formData.get("author_name"),
         published_year: Number(formData.get("published_year")),
-        user_id: sessionUser.user_id,
         genre_names: genreNames,
     };
 
@@ -279,7 +274,6 @@ const handleUpdateBook = async (form) => {
     const payload = {
         title: formData.get("title"),
         author_id: Number(formData.get("author_id")),
-        user_id: sessionUser.user_id,
         published_year: Number(formData.get("published_year")),
         status: formData.get("status"),
         rating: Number(formData.get("rating")),
@@ -337,7 +331,11 @@ document.body.addEventListener("submit", async (event) => {
 document.body.addEventListener("click", async (event) => {
     const logoutButton = event.target.closest("[data-logout]");
     if (logoutButton) {
-        window.localStorage.removeItem(SESSION_KEY);
+        logoutButton.disabled = true;
+        await fetch("/api/users/logout", {
+            method: "POST",
+            credentials: "same-origin",
+        });
         sessionUser = null;
         window.location.replace("/login");
         return;

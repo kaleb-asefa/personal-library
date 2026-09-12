@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request, HTTPException, status, Depends
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi.exception_handlers import http_exception_handler, request_validation_exception_handler
 
@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..orm import Book, Author, Genre, get_db, User, Base, engine
 
 from .routers import user, books
+from .auth import CurrentUser, require_owner
 
 from pathlib import Path
 from contextlib import asynccontextmanager
@@ -49,10 +50,8 @@ async def home(request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
     return templates.TemplateResponse(request, "index.html", {'books': books})
 
 @app.get("/users", response_class=HTMLResponse, include_in_schema=False)
-async def users_page(request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
-    users = await db.execute(select(User).options(selectinload(User.books)))
-    users = users.scalars().unique().all()
-    return templates.TemplateResponse(request, "users.html", {"users": users})
+async def users_page(request: Request, current_user: CurrentUser):
+    return templates.TemplateResponse(request, "users.html", {"users": [current_user]})
 
 @app.get("/users/new", response_class=HTMLResponse, include_in_schema=False)
 def create_user_page(request: Request):
@@ -63,19 +62,22 @@ def login_page(request: Request):
     return templates.TemplateResponse(request, "login.html")
 
 @app.get("/logout", response_class=HTMLResponse, include_in_schema=False)
-def logout_page(request: Request):
+def logout_page(request: Request, current_user: CurrentUser):
     return templates.TemplateResponse(request, "logout.html")
 
 @app.get("/users/{user_id}/edit", response_class=HTMLResponse, include_in_schema=False)
-async def edit_user_page(user_id: int, request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
-    user = await db.execute(select(User).where(User.user_id == user_id))
-    user = user.scalar_one_or_none()
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-    return templates.TemplateResponse(request, "edit_user.html", {"user": user})
+async def edit_user_page(user_id: int, request: Request, current_user: CurrentUser):
+    require_owner(user_id, current_user)
+    return templates.TemplateResponse(request, "edit_user.html", {"user": current_user})
 
 @app.get("/users/{user_id}", response_class=HTMLResponse, include_in_schema=False)
-async def user_detail_page(user_id: int, request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
+async def user_detail_page(
+    user_id: int,
+    request: Request,
+    current_user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    require_owner(user_id, current_user)
     user = await db.execute(
         select(User)
         .where(User.user_id == user_id)
@@ -91,36 +93,45 @@ async def user_detail_page(user_id: int, request: Request, db: Annotated[AsyncSe
     return templates.TemplateResponse(request, "user_detail.html", {"user": user, "books": user.books})
 
 @app.get("/users/{user_id}/books", response_class=HTMLResponse, include_in_schema=False)
-async def user_books_page(user_id: int, request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
-    user = await db.execute(select(User).where(User.user_id == user_id))
-    user = user.scalar_one_or_none()
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+async def user_books_page(
+    user_id: int,
+    request: Request,
+    current_user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    require_owner(user_id, current_user)
     
     books = await db.execute(
         select(Book)
-        .where(Book.user_id == user_id)
+        .where(Book.user_id == current_user.user_id)
         .options(joinedload(Book.author), joinedload(Book.genres), joinedload(Book.user))
     )
     books = books.scalars().unique().all()
-    return templates.TemplateResponse(request, "user_books.html", {"user": user, "books": books})
+    return templates.TemplateResponse(request, "user_books.html", {"user": current_user, "books": books})
 
 @app.get("/books/new", response_class=HTMLResponse, include_in_schema=False)
-async def add_book_page(request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
+async def add_book_page(
+    request: Request,
+    current_user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
     authors = await db.execute(select(Author).order_by(Author.name))
     authors = authors.scalars().all()
     genres = await db.execute(select(Genre).order_by(Genre.name))
     genres = genres.scalars().all()
-    users = await db.execute(select(User).order_by(User.username))
-    users = users.scalars().all()
     return templates.TemplateResponse(
         request,
         "add_book.html",
-        {"authors": authors, "genres": genres, "users": users},
+        {"authors": authors, "genres": genres},
     )
 
 @app.get("/books/{book_id}", response_class=HTMLResponse, include_in_schema=False)
-async def book_detail_page(book_id: int, request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
+async def book_detail_page(
+    book_id: int,
+    request: Request,
+    current_user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
     book = await db.execute(
         select(Book)
         .where(Book.book_id == book_id)
@@ -129,10 +140,16 @@ async def book_detail_page(book_id: int, request: Request, db: Annotated[AsyncSe
     book = book.unique().scalar_one_or_none()
     if not book:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found")
+    require_owner(book.user_id, current_user)
     return templates.TemplateResponse(request, "book_detail.html", {"book": book})
 
 @app.get("/books/{book_id}/edit", response_class=HTMLResponse, include_in_schema=False)
-async def edit_book_page(book_id: int, request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
+async def edit_book_page(
+    book_id: int,
+    request: Request,
+    current_user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
     book = await db.execute(
         select(Book)
         .where(Book.book_id == book_id)
@@ -141,13 +158,12 @@ async def edit_book_page(book_id: int, request: Request, db: Annotated[AsyncSess
     book = book.unique().scalar_one_or_none()
     if not book:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found")
+    require_owner(book.user_id, current_user)
     
     authors = await db.execute(select(Author).order_by(Author.name))
     authors = authors.scalars().all()
     genres = await db.execute(select(Genre).order_by(Genre.name))
     genres = genres.scalars().all()
-    users = await db.execute(select(User).order_by(User.username))
-    users = users.scalars().all()
     selected_genre_ids = {genre.genre_id for genre in book.genres}
     return templates.TemplateResponse(
         request,
@@ -156,7 +172,6 @@ async def edit_book_page(book_id: int, request: Request, db: Annotated[AsyncSess
             "book": book,
             "authors": authors,
             "genres": genres,
-            "users": users,
             "selected_genre_ids": selected_genre_ids,
         },
     )
@@ -167,6 +182,22 @@ async def edit_book_page(book_id: int, request: Request, db: Annotated[AsyncSess
     
 @app.exception_handler(StarletteHTTPException)
 async def general_http_exception_handler(request: Request, exc: StarletteHTTPException):
+    if (
+        exc.status_code == status.HTTP_401_UNAUTHORIZED
+        and request.method == "GET"
+        and not request.url.path.startswith("/api/")
+    ):
+        return RedirectResponse(url=f"/login?next={request.url.path}", status_code=status.HTTP_303_SEE_OTHER)
+    if (
+        exc.status_code == status.HTTP_403_FORBIDDEN
+        and request.method == "GET"
+        and not request.url.path.startswith("/api/")
+    ):
+        return templates.TemplateResponse(
+            request,
+            "forbidden.html",
+            status_code=status.HTTP_403_FORBIDDEN,
+        )
     return await http_exception_handler(request, exc)
 
 @app.exception_handler(RequestValidationError)
