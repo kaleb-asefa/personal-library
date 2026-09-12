@@ -17,28 +17,31 @@ async def api_books(db : Annotated[AsyncSession, Depends(get_db)]):
 
 @router.post('', response_model=booksResponse)
 async def api_create_book(book: booksCreate, db: Annotated[AsyncSession, Depends(get_db)]):
-    author = await db.execute(select(Author).where(Author.author_id == book.author_id))
+    author = await db.execute(select(Author).where(Author.name == book.author_name))
     author = author.scalar_one_or_none()
     if not author:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Author not found")
-    
+        author = Author(name=book.author_name)
+        db.add(author)
+
     user = await db.execute(select(User).where(User.user_id == book.user_id))
     user = user.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     
-    genres = db.execute(select(Genre).where(Genre.genre_id.in_(book.genre_ids)))
-    genres = genres.scalars().all()
-    if len(genres) != len(book.genre_ids):
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="One or more genres not found")
+    genre_result = await db.execute(select(Genre).where(Genre.name.in_(book.genre_names)))
+    genres = list(genre_result.scalars().all())
+    existing_genre_names = {genre.name for genre in genres}
+    new_genres = [Genre(name=name) for name in book.genre_names if name not in existing_genre_names]
+    db.add_all(new_genres)
+    genres.extend(new_genres)
     
     new_book = Book(
         title=book.title,
         author=author,
+        user=user,
         published_year=book.published_year,
         status='unread',
         rating=0,
-        user=user,
         genres=genres
     )
     

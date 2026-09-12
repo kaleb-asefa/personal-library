@@ -6,6 +6,7 @@
     {% set avatar_src = url_for('static', path='/profile/default.png') %}
     {% set read_count = books|selectattr('status', 'equalto', 'read')|list|length %}
 
+    <div data-auth-required data-owner-id="{{ user.user_id }}">
     <section class="profile-hero">
         <img class="profile-avatar" src="{{ avatar_src }}" alt="{{ user.username }} profile image">
         <div class="profile-copy">
@@ -26,7 +27,7 @@
                 <i class="bi bi-plus-lg"></i>
                 Add Book
             </a>
-            <button class="btn btn-outline-danger" type="button" data-api-delete="user" data-id="{{ user.user_id }}" data-redirect="/users">
+            <button class="btn btn-outline-danger" type="button" data-api-delete="user" data-id="{{ user.user_id }}" data-redirect="/login">
                 <i class="bi bi-trash3"></i>
                 Delete
             </button>
@@ -70,4 +71,5 @@
             </a>
         </section>
     {% endif %}
+    </div>
 {% endblock %}

@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 
-{% block title %}New User | Personal Library{% endblock %}
+{% block title %}Create Account | Personal Library{% endblock %}
 
 {% block content %}
     <section class="form-layout">
         <div class="form-intro">
-            <p class="eyebrow">Readers</p>
-            <h1>Create user</h1>
-            <p class="page-lede">Create a profile that books can belong to.</p>
+            <p class="eyebrow">Your library starts here</p>
+            <h1>Create account</h1>
+            <p class="page-lede">Set up one private place for the books you want to read and the stories you finish.</p>
         </div>
 
         <form class="action-form" data-api-form="create-user" hx-boost="false">
@@ -15,23 +15,24 @@
 
             <label class="field-group">
                 <span>Username</span>
-                <input class="form-control" name="username" type="text" maxlength="255" required>
+                <input class="form-control" name="username" type="text" maxlength="255" autocomplete="username" required>
             </label>
 
             <label class="field-group">
                 <span>Email</span>
-                <input class="form-control" name="email" type="email" maxlength="255" required>
+                <input class="form-control" name="email" type="email" maxlength="255" autocomplete="email" required>
             </label>
 
             <label class="field-group">
                 <span>Password</span>
-                <input class="form-control" name="password" type="password" autocomplete="new-password">
+                <input class="form-control" name="password" type="password" minlength="8" autocomplete="new-password" required>
             </label>
 
             <button class="btn btn-dark submit-button" type="submit">
                 <i class="bi bi-person-plus"></i>
-                Create User
+                Create Account
             </button>
+            <p class="form-footnote">Already have an account? <a href="/login">Sign in</a></p>
         </form>
     </section>
 {% endblock %}

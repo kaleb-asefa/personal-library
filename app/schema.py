@@ -34,7 +34,7 @@ class authors(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     author_id: int
     name: str = Field(min_length=1, max_length=255)
-    country: str = Field(min_length=1, max_length=255)
+    country: str | None = Field(default=None, min_length=1, max_length=255)
 
 class Genres(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -56,10 +56,10 @@ class booksResponse(booksBase):
 
 class booksCreate(BaseModel):
     title: str = Field(min_length=1, max_length=255)
-    author_id: int
-    published_year: int
+    author_name: str = Field(min_length=1, max_length=255)
     user_id: int
-    genre_ids: list[int]  # List of genre IDs to associate with the book
+    published_year: int
+    genre_names: list[str] = Field(min_length=1)  # List of genre names to associate with the book
 
 class booksUpdate(BaseModel):
     title: str | None = Field(default=None, min_length=1, max_length=255)

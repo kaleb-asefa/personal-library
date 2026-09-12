@@ -53,7 +53,7 @@ class Author(Base):
     __tablename__ = 'authors'
     author_id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
-    country = Column(String)
+    country : Mapped[str | None] = mapped_column(String, nullable=True)
 
     books = relationship("Book", back_populates="author")
 

@@ -1,35 +1,29 @@
 {% extends "base.html" %}
 
-{% block title %}Books | Personal Library{% endblock %}
+{% block title %}Personal Library | Your reading life{% endblock %}
 
 {% block content %}
-    <header class="page-header">
-        <div>
-            <p class="eyebrow">Library</p>
-            <h1>All books</h1>
-            <p class="page-lede">A clean view of every saved book, grouped visually by title, owner, author, genre, status, and rating.</p>
+    <section class="welcome-layout" data-guest-only>
+        <div class="welcome-copy">
+            <p class="eyebrow">Your reading life, in one place</p>
+            <h1>Keep the books that stay with you.</h1>
+            <p class="page-lede">Build a private shelf, track what you have finished, and keep the next good read close at hand.</p>
+            <div class="welcome-actions">
+                <a class="btn btn-dark" href="/users/new">
+                    <i class="bi bi-person-plus"></i>
+                    Create Account
+                </a>
+                <a class="btn btn-outline-dark" href="/login">
+                    <i class="bi bi-box-arrow-in-right"></i>
+                    Sign In
+                </a>
+            </div>
         </div>
-        <div class="stat-chip">
-            <i class="bi bi-journal-bookmark"></i>
-            {{ books|length }} {{ 'book' if books|length == 1 else 'books' }}
+        <div class="welcome-shelf" aria-hidden="true">
+            <div class="shelf-book shelf-book-tall"><span>READ</span></div>
+            <div class="shelf-book shelf-book-short"><span>KEEP</span></div>
+            <div class="shelf-book shelf-book-wide"><span>RETURN</span></div>
+            <div class="shelf-line"></div>
         </div>
-    </header>
-
-    {% if books %}
-        <section class="book-grid" aria-label="Book list">
-            {% for book in books %}
-                {% include "_book_tile.html" %}
-            {% endfor %}
-        </section>
-    {% else %}
-        <section class="empty-state">
-            <i class="bi bi-journal-plus"></i>
-            <h2>No books yet</h2>
-            <p>Add a book and it will appear here.</p>
-            <a class="btn btn-dark" href="/books/new">
-                <i class="bi bi-plus-lg"></i>
-                Add Book
-            </a>
-        </section>
-    {% endif %}
+    </section>
 {% endblock %}

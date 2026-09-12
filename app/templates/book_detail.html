@@ -3,10 +3,10 @@
 {% block title %}{{ book.title }} | Personal Library{% endblock %}
 
 {% block content %}
-    <section class="book-record">
-        <a class="back-link" href="/">
+    <section class="book-record" data-auth-required data-owner-id="{{ book.user_id }}">
+        <a class="back-link" href="/users/{{ book.user_id }}/books">
             <i class="bi bi-arrow-left"></i>
-            Back to books
+            Back to my shelf
         </a>
 
         <div class="book-record-panel">
@@ -34,10 +34,6 @@
                     <div>
                         <span>Author</span>
                         <strong>{{ book.author.name }}</strong>
-                    </div>
-                    <div>
-                        <span>Owner</span>
-                        <strong><a href="/users/{{ book.user.user_id }}">{{ book.user.username }}</a></strong>
                     </div>
                     <div>
                         <span>Published</span>

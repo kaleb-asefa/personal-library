@@ -3,11 +3,11 @@
 {% block title %}Edit {{ book.title }} | Personal Library{% endblock %}
 
 {% block content %}
-    <section class="form-layout form-layout-wide">
+    <section class="form-layout form-layout-wide" data-auth-required data-owner-id="{{ book.user_id }}">
         <div class="form-intro">
             <p class="eyebrow">Books</p>
             <h1>Edit book</h1>
-            <p class="page-lede">Update the catalog details, reading status, rating, owner, and genres.</p>
+            <p class="page-lede">Update the book details, reading status, rating, and genres on your shelf.</p>
         </div>
 
         <form class="action-form" data-api-form="update-book" data-book-id="{{ book.book_id }}" hx-boost="false">
@@ -18,25 +18,14 @@
                 <input class="form-control" name="title" type="text" maxlength="255" value="{{ book.title }}" required>
             </label>
 
-            <div class="form-row">
-                <label class="field-group">
-                    <span>User</span>
-                    <select class="form-select" name="user_id" required>
-                        {% for user in users %}
-                            <option value="{{ user.user_id }}" {% if user.user_id == book.user_id %}selected{% endif %}>{{ user.username }}</option>
-                        {% endfor %}
-                    </select>
-                </label>
-
-                <label class="field-group">
-                    <span>Author</span>
-                    <select class="form-select" name="author_id" required>
-                        {% for author in authors %}
-                            <option value="{{ author.author_id }}" {% if author.author_id == book.author_id %}selected{% endif %}>{{ author.name }}</option>
-                        {% endfor %}
-                    </select>
-                </label>
-            </div>
+            <label class="field-group">
+                <span>Author</span>
+                <select class="form-select" name="author_id" required>
+                    {% for author in authors %}
+                        <option value="{{ author.author_id }}" {% if author.author_id == book.author_id %}selected{% endif %}>{{ author.name }}</option>
+                    {% endfor %}
+                </select>
+            </label>
 
             <div class="form-row">
                 <label class="field-group">
@@ -47,8 +36,8 @@
                 <label class="field-group">
                     <span>Status</span>
                     <select class="form-select" name="status" required>
-                        <option value="unread" {% if book.status == 'unread' %}selected{% endif %}>Unread</option>
-                        <option value="read" {% if book.status == 'read' %}selected{% endif %}>Read</option>
+                        <option value="unread" {% if book.status == 'unread' %}selected{% endif %}>Want to read</option>
+                        <option value="read" {% if book.status == 'read' %}selected{% endif %}>Finished</option>
                     </select>
                 </label>
             </div>

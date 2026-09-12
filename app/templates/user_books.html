@@ -3,17 +3,36 @@
 {% block title %}{{ user.username }} Books | Personal Library{% endblock %}
 
 {% block content %}
+    {% set read_count = books|selectattr('status', 'equalto', 'read')|list|length %}
+    {% set rated_books = books|selectattr('rating')|list %}
+
+    <div data-auth-required data-owner-id="{{ user.user_id }}">
     <header class="page-header">
         <div>
-            <p class="eyebrow">Bookshelf</p>
-            <h1>{{ user.username }}'s books</h1>
-            <p class="page-lede">A user-specific view of saved books and reading progress.</p>
+            <p class="eyebrow">{{ user.username }}'s library</p>
+            <h1>My shelf</h1>
+            <p class="page-lede">Your reading queue, finished books, and ratings in one place.</p>
         </div>
         <a class="btn btn-dark" href="/books/new">
             <i class="bi bi-plus-lg"></i>
             Add Book
         </a>
     </header>
+
+    <section class="stats-grid" aria-label="Reading progress">
+        <div class="stat-panel">
+            <span>On my shelf</span>
+            <strong>{{ books|length }}</strong>
+        </div>
+        <div class="stat-panel">
+            <span>Finished</span>
+            <strong>{{ read_count }}</strong>
+        </div>
+        <div class="stat-panel">
+            <span>Want to read</span>
+            <strong>{{ books|length - read_count }}</strong>
+        </div>
+    </section>
 
     {% if books %}
         <section class="book-grid" aria-label="{{ user.username }} books">
@@ -25,11 +44,12 @@
         <section class="empty-state">
             <i class="bi bi-journal-plus"></i>
             <h2>No books yet</h2>
-            <p>Add a book to this user profile.</p>
+            <p>Add the first title you want to read.</p>
             <a class="btn btn-dark" href="/books/new">
                 <i class="bi bi-plus-lg"></i>
                 Add Book
             </a>
         </section>
     {% endif %}
+    </div>
 {% endblock %}

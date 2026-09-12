@@ -3,11 +3,11 @@
 {% block title %}Edit {{ user.username }} | Personal Library{% endblock %}
 
 {% block content %}
-    <section class="form-layout">
+    <section class="form-layout" data-auth-required data-owner-id="{{ user.user_id }}">
         <div class="form-intro">
-            <p class="eyebrow">Readers</p>
-            <h1>Edit user</h1>
-            <p class="page-lede">Update profile details for {{ user.username }}.</p>
+            <p class="eyebrow">Account</p>
+            <h1>Edit profile</h1>
+            <p class="page-lede">Update the details for your reader account.</p>
         </div>
 
         <form class="action-form" data-api-form="update-user" data-user-id="{{ user.user_id }}" hx-boost="false">
@@ -36,9 +36,9 @@
             <div class="button-row">
                 <button class="btn btn-dark submit-button" type="submit">
                     <i class="bi bi-check2"></i>
-                    Save User
+                    Save Profile
                 </button>
-                <button class="btn btn-outline-danger submit-button" type="button" data-api-delete="user" data-id="{{ user.user_id }}" data-redirect="/users">
+                <button class="btn btn-outline-danger submit-button" type="button" data-api-delete="user" data-id="{{ user.user_id }}" data-redirect="/login">
                     <i class="bi bi-trash3"></i>
                     Delete
                 </button>

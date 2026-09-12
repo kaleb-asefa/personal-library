@@ -9,13 +9,6 @@
             <span>{{ book.author.name }}</span>
         </div>
 
-        {% if book.user %}
-            <div class="meta-row">
-                <i class="bi bi-person-circle"></i>
-                <span>{{ book.user.username }}</span>
-            </div>
-        {% endif %}
-
         {% if book.published_year %}
             <div class="meta-row">
                 <i class="bi bi-calendar3"></i>
@@ -35,10 +28,11 @@
             <span class="status-badge status-{{ book.status }}">
                 {% if book.status == 'read' %}
                     <i class="bi bi-check2-circle"></i>
+                    Finished
                 {% else %}
                     <i class="bi bi-bookmark"></i>
+                    Want to read
                 {% endif %}
-                {{ book.status }}
             </span>
 
             {% if book.rating %}
