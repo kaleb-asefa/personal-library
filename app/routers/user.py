@@ -1,6 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status, UploadFile
+from starlette.concurrency import run_in_threadpool
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from ...image_utils import process_profile_pic, delete_profile_pic
+from PIL import UnidentifiedImageError
 from typing import Annotated
 from ...orm import User, get_db, Book
 from ..schema import UserCreate, booksResponse, UserUpdate, publicUserResponse, privateUserResponse, Token
@@ -140,3 +143,39 @@ async def delete_user(
     await db.delete(current_user)
     await db.commit()
     response.delete_cookie(key=AUTH_COOKIE_NAME, httponly=True, samesite="lax")
+
+
+@router.patch("/{user_id}/picture", response_model=privateUserResponse)
+async def update_user_picture(
+    user_id: int,
+    image_file: UploadFile,
+    current_user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    require_owner(user_id, current_user)
+
+    content = await image_file.read()
+
+    if len(content) > settings.max_profile_pic_size:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Profile picture size exceeds the maximum limit of {settings.max_profile_pic_size} bytes"
+        )
+
+    try:
+        new_file_name = await run_in_threadpool(process_profile_pic, content)
+    except UnidentifiedImageError as err:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid image file"
+        )
+
+    old_file_name = current_user.image_file
+    current_user.image_file = new_file_name
+    await db.commit()
+    await db.refresh(current_user, attribute_names=['image_file'])
+    if old_file_name:
+        delete_profile_pic(old_file_name)
+    return current_user
+
+    
