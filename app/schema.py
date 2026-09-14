@@ -27,7 +27,6 @@ class UserUpdate(BaseModel):
     username: str | None = Field(default=None, min_length=1, max_length=255)
     email: EmailStr | None = Field(default=None, max_length=255)
     password: str | None = None
-    image_file: str | None = None
 
 
 class authors(BaseModel):

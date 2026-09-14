@@ -125,8 +125,6 @@ async def update_user(
         user.email = user_update.email.lower()
     if user_update.password:
         user.password_hash = hash_password(user_update.password)
-    if user_update.image_file is not None:
-        user.image_file = user_update.image_file
 
     await db.commit()
     await db.refresh(user, attribute_names=['username', 'email', 'password_hash', 'image_file'])
@@ -178,4 +176,23 @@ async def update_user_picture(
         delete_profile_pic(old_file_name)
     return current_user
 
+@router.delete("/{user_id}/picture", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_user_picture(
+    user_id: int,
+    current_user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    require_owner(user_id, current_user)
+    old_file_name = current_user.image_file
+    if old_file_name is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No profile picture to delete"
+        )
+    current_user.image_file = None
+
+    await db.commit()
+    await db.refresh(current_user, attribute_names=['image_file'])
+    delete_profile_pic(old_file_name)
+    return current_user
     

@@ -1,19 +1,27 @@
 import uuid
 from io import BytesIO
+import io
 from PIL import Image, ImageOps
 
 from pathlib import Path
 
 PROFILE_PICS_DIR = Path('app/media/profile')
 
-def process_profile_pic(image: Image.Image) -> Path:
+def process_profile_pic(content: bytes) -> str:
     PROFILE_PICS_DIR.mkdir(parents=True, exist_ok=True)
-    image = ImageOps.fit(image, (256, 256), Image.ANTIALIAS)
+
+    image = Image.open(io.BytesIO(content))
+    img = ImageOps.fit(image, (300, 300), method=Image.Resampling.LANCZOS)
+
+    if img.mode in ("RGBA", "LA", "P"):
+        img = img.convert("RGB")
+
     filename = f"{uuid.uuid4().hex}.png"
     filepath = PROFILE_PICS_DIR / filename
-    image.save(filepath, format='PNG')
-    return filepath
+    img.save(filepath, format="PNG")
+    return filename
 
-def delete_profile_pic(filepath: Path) -> None:
+def delete_profile_pic(filename: str) -> None:
+    filepath = PROFILE_PICS_DIR / filename
     if filepath.exists():
         filepath.unlink()
