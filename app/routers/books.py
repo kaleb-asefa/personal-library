@@ -1,24 +1,47 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy import func
 from typing import Annotated
 from ...orm import Book, get_db, Author, Genre
-from ..schema import booksResponse, booksCreate, booksUpdate
+from ..schema import booksResponse, booksCreate, booksUpdate, paginatedBooksResponse
 from sqlalchemy.orm import joinedload, selectinload
 from ..auth import CurrentUser, require_owner
 
 router = APIRouter()
 
 
-@router.get('', response_model=list[booksResponse])
-async def api_books(current_user: CurrentUser, db : Annotated[AsyncSession, Depends(get_db)]):
+@router.get('', response_model=paginatedBooksResponse)
+async def api_books(current_user: CurrentUser, db : Annotated[AsyncSession, Depends(get_db)],
+                    skip: int = Query(0, ge=0),
+                    limit: int = Query(10, ge=1, le=100)):
+
+
+    total = await db.execute(
+        select(func.count(Book.book_id))
+        .where(Book.user_id == current_user.user_id)
+    )
+    total = total.scalar_one() or 0
+
     books = await db.execute(
         select(Book)
         .where(Book.user_id == current_user.user_id)
+        .order_by(Book.published_year.desc())
+        .offset(skip)
+        .limit(limit)
         .options(joinedload(Book.author), selectinload(Book.genres), joinedload(Book.user))
     )
     books = books.scalars().unique().all()
-    return books
+
+    has_more = skip + len(books) < total
+
+    return paginatedBooksResponse(
+        books=books,
+        total=total,
+        skip=skip,
+        limit=limit,
+        has_more=has_more
+    )
 
 @router.post('', response_model=booksResponse, status_code=status.HTTP_201_CREATED)
 async def api_create_book(book: booksCreate, db: Annotated[AsyncSession, Depends(get_db)], current_user: CurrentUser):

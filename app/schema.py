@@ -66,3 +66,11 @@ class booksUpdate(BaseModel):
     status: str | None = Field(default=None, min_length=1, max_length=255)
     rating: int | None = Field(default=None, ge=0, le=5)
     genre_ids: list[int] | None = None  # List of genre IDs to associate with the book
+
+class paginatedBooksResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    books: list[booksResponse]
+    total: int
+    skip: int
+    limit: int
+    has_more: bool
