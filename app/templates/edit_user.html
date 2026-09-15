@@ -10,8 +10,38 @@
             <p class="page-lede">Update the details for your reader account.</p>
         </div>
 
-        <form class="action-form" data-api-form="update-user" data-user-id="{{ user.user_id }}" hx-boost="false">
-            <div class="form-alert" data-form-message hidden></div>
+        <div class="account-settings-stack">
+            <form class="action-form profile-picture-form" data-api-form="update-user-picture" data-user-id="{{ user.user_id }}" hx-boost="false">
+                <div class="form-alert" data-form-message hidden></div>
+
+                <div class="profile-picture-editor">
+                    <img class="profile-avatar" src="{{ user.image_path }}" alt="{{ user.username }} profile image">
+                    <div>
+                        <p class="eyebrow">Profile picture</p>
+                        <h2>Change photo</h2>
+                        <p>Upload a square image for your reader profile.</p>
+                    </div>
+                </div>
+
+                <label class="field-group">
+                    <span>Image file</span>
+                    <input class="form-control" name="image_file" type="file" accept="image/png,image/jpeg,image/webp,image/gif" required>
+                </label>
+
+                <div class="button-row">
+                    <button class="btn btn-dark submit-button" type="submit">
+                        <i class="bi bi-upload"></i>
+                        Upload Photo
+                    </button>
+                    <button class="btn btn-outline-danger submit-button" type="button" data-api-delete-picture data-user-id="{{ user.user_id }}" {% if not user.image_file %}disabled{% endif %}>
+                        <i class="bi bi-image"></i>
+                        Remove Photo
+                    </button>
+                </div>
+            </form>
+
+            <form class="action-form" data-api-form="update-user" data-user-id="{{ user.user_id }}" hx-boost="false">
+                <div class="form-alert" data-form-message hidden></div>
 
             <label class="field-group">
                 <span>Username</span>
@@ -28,21 +58,17 @@
                 <input class="form-control" name="password" type="password" autocomplete="new-password">
             </label>
 
-            <label class="field-group">
-                <span>Image file</span>
-                <input class="form-control" name="image_file" type="text" value="{{ user.image_file or '' }}">
-            </label>
-
-            <div class="button-row">
-                <button class="btn btn-dark submit-button" type="submit">
-                    <i class="bi bi-check2"></i>
-                    Save Profile
-                </button>
-                <a class="btn btn-outline-danger submit-button" href="/users/{{ user.user_id }}/delete">
-                    <i class="bi bi-trash3"></i>
-                    Delete Account
-                </a>
-            </div>
-        </form>
+                <div class="button-row">
+                    <button class="btn btn-dark submit-button" type="submit">
+                        <i class="bi bi-check2"></i>
+                        Save Profile
+                    </button>
+                    <a class="btn btn-outline-danger submit-button" href="/users/{{ user.user_id }}/delete">
+                        <i class="bi bi-trash3"></i>
+                        Delete Account
+                    </a>
+                </div>
+            </form>
+        </div>
     </section>
 {% endblock %}

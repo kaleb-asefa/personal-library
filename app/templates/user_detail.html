@@ -3,12 +3,11 @@
 {% block title %}{{ user.username }} | Personal Library{% endblock %}
 
 {% block content %}
-    {% set avatar_src = url_for('static', path='/profile/default.png') %}
     {% set read_count = books|selectattr('status', 'equalto', 'read')|list|length %}
 
     <div data-auth-required data-owner-id="{{ user.user_id }}">
     <section class="profile-hero">
-        <img class="profile-avatar" src="{{ avatar_src }}" alt="{{ user.username }} profile image">
+            <img class="profile-avatar" src="{{ user.image_path }}" alt="{{ user.username }} profile image">
         <div class="profile-copy">
             <p class="eyebrow">Reader profile</p>
             <h1>{{ user.username }}</h1>

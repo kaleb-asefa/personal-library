@@ -818,6 +818,34 @@ a {
     padding: 22px;
 }
 
+.account-settings-stack {
+    display: grid;
+    gap: 18px;
+}
+
+.profile-picture-editor {
+    display: grid;
+    grid-template-columns: 104px minmax(0, 1fr);
+    gap: 16px;
+    align-items: center;
+}
+
+.profile-picture-editor .profile-avatar {
+    width: 104px;
+    height: 104px;
+}
+
+.profile-picture-editor h2 {
+    margin: 0 0 6px;
+    font-size: 1.35rem;
+    font-weight: 850;
+}
+
+.profile-picture-editor p:last-child {
+    margin: 0;
+    color: var(--muted);
+}
+
 .field-group {
     display: grid;
     gap: 8px;

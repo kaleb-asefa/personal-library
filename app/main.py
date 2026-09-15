@@ -39,6 +39,7 @@ app.include_router(user.router, prefix="/api/users", tags=["users"])
 app.include_router(books.router, prefix="/api/books", tags=["books"])
 
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
+app.mount("/media", StaticFiles(directory=BASE_DIR / "media"), name="media")
 
 
 

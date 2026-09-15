@@ -60,6 +60,21 @@ const updateJson = async (url, payload) => {
     return data;
 };
 
+const updateFormData = async (url, payload) => {
+    const response = await fetch(url, {
+        method: "PATCH",
+        credentials: "same-origin",
+        body: payload,
+    });
+    const data = await readJson(response);
+
+    if (!response.ok) {
+        throw getApiError(response, data, "Something went wrong.");
+    }
+
+    return data;
+};
+
 const deleteJson = async (url) => {
     const response = await fetch(url, { method: "DELETE", credentials: "same-origin" });
 
@@ -254,7 +269,6 @@ const handleUpdateUser = async (form) => {
     const payload = {
         username: formData.get("username"),
         email: formData.get("email"),
-        image_file: formData.get("image_file") || null,
     };
     const password = formData.get("password");
 
@@ -267,6 +281,20 @@ const handleUpdateUser = async (form) => {
     window.setTimeout(() => {
         visitPage(`/users/${user.user_id}`);
     }, 500);
+};
+
+const handleUpdateUserPicture = async (form) => {
+    const formData = new FormData(form);
+    const file = formData.get("image_file");
+
+    if (!file || !file.size) {
+        throw new Error("Choose an image to upload.");
+    }
+
+    const user = await updateFormData(`/api/users/${form.dataset.userId}/picture`, formData);
+    sessionUser = user;
+    showMessage(form, "success", "Profile picture updated.");
+    window.setTimeout(() => visitPage(`/users/${user.user_id}/edit`), 450);
 };
 
 const handleDeleteUser = async (form) => {
@@ -334,6 +362,10 @@ document.body.addEventListener("submit", async (event) => {
             await handleUpdateUser(form);
         }
 
+        if (formType === "update-user-picture") {
+            await handleUpdateUserPicture(form);
+        }
+
         if (formType === "delete-user") {
             await handleDeleteUser(form);
         }
@@ -366,6 +398,24 @@ document.body.addEventListener("click", async (event) => {
     }
 
     const button = event.target.closest("[data-api-delete]");
+    const pictureButton = event.target.closest("[data-api-delete-picture]");
+
+    if (pictureButton) {
+        pictureButton.disabled = true;
+        const form = pictureButton.closest("form");
+
+        try {
+            await deleteJson(`/api/users/${pictureButton.dataset.userId}/picture`);
+            sessionUser = await loadSessionUser();
+            showMessage(form, "success", "Profile picture removed.");
+            window.setTimeout(() => visitPage(`/users/${sessionUser.user_id}/edit`), 450);
+        } catch (error) {
+            showMessage(form, "error", error.message);
+            pictureButton.disabled = false;
+        }
+        return;
+    }
+
     if (!button) return;
 
     const resource = button.dataset.apiDelete;

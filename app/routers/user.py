@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Response, status, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Response, status, UploadFile
 from starlette.concurrency import run_in_threadpool
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -146,7 +146,7 @@ async def delete_user(
 @router.patch("/{user_id}/picture", response_model=privateUserResponse)
 async def update_user_picture(
     user_id: int,
-    image_file: UploadFile,
+    image_file: Annotated[UploadFile, File()],
     current_user: CurrentUser,
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
