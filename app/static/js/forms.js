@@ -165,6 +165,18 @@ const applySessionToPage = () => {
     updateActiveNav();
 };
 
+const getSessionLink = (linkType) => {
+    if (!sessionUser) return "/login";
+
+    const sessionLinks = {
+        shelf: `/users/${sessionUser.user_id}/books`,
+        profile: `/users/${sessionUser.user_id}`,
+        settings: `/users/${sessionUser.user_id}/edit`,
+    };
+
+    return sessionLinks[linkType] || "/";
+};
+
 const enforcePageAccess = () => {
     const protectedView = document.querySelector("[data-auth-required]");
     const ownerView = document.querySelector("[data-owner-id]");
@@ -205,6 +217,8 @@ const visitPage = (url) => {
             swap: "outerHTML show:window:top",
         }).then(() => {
             window.history.pushState({}, "", url);
+            applySessionToPage();
+            enforcePageAccess();
             updateActiveNav();
         });
         return;
@@ -334,6 +348,17 @@ const handleUpdateBook = async (form) => {
         visitPage(`/users/${sessionUser.user_id}/books`);
     }, 500);
 };
+
+const handleSessionLinkClick = (event) => {
+    const sessionLink = event.target.closest("[data-session-link]");
+    if (!sessionLink) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    visitPage(getSessionLink(sessionLink.dataset.sessionLink));
+};
+
+document.addEventListener("click", handleSessionLinkClick, true);
 
 document.body.addEventListener("submit", async (event) => {
     const form = event.target.closest("[data-api-form]");

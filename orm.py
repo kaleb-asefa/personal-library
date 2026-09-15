@@ -23,7 +23,7 @@ class User(Base):
     def image_path(self):
         if self.image_file:
             return f"/media/profile/{self.image_file}"
-        return f"/static/profile/default.jpg"
+        return f"/static/profile/default.png"
 
     def __repr__(self):
         return self.username
