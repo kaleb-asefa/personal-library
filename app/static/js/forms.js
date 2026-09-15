@@ -1,4 +1,5 @@
 let sessionUser = null;
+const DEFAULT_AVATAR = "/static/profile/default.png";
 
 const showMessage = (form, type, text) => {
     const message = form.querySelector("[data-form-message]");
@@ -159,6 +160,10 @@ const applySessionToPage = () => {
         });
         document.querySelectorAll("[data-session-username]").forEach((element) => {
             element.textContent = sessionUser.username;
+        });
+        document.querySelectorAll("[data-session-avatar]").forEach((image) => {
+            image.src = sessionUser.image_path || DEFAULT_AVATAR;
+            image.alt = `${sessionUser.username} profile image`;
         });
     }
 

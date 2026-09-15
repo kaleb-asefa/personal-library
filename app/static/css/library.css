@@ -78,7 +78,8 @@ a {
 }
 
 .brand-mark,
-.nav-link-pill {
+.nav-link-pill,
+.account-chip {
     display: inline-flex;
     align-items: center;
     gap: 8px;
@@ -132,6 +133,62 @@ a {
 
 .nav-link-pill.is-active {
     box-shadow: 0 8px 18px rgba(32, 33, 36, 0.07);
+}
+
+.account-chip {
+    gap: 10px;
+    min-height: 46px;
+    max-width: 240px;
+    padding: 5px 10px 5px 6px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: #fff;
+    color: var(--ink);
+    box-shadow: 0 10px 22px rgba(32, 33, 36, 0.08);
+}
+
+.account-chip:hover,
+.account-chip.is-active {
+    border-color: rgba(63, 127, 143, 0.45);
+    color: var(--ink);
+}
+
+.account-chip.is-active {
+    box-shadow: 0 0 0 3px rgba(63, 127, 143, 0.12), 0 10px 22px rgba(32, 33, 36, 0.08);
+}
+
+.account-avatar {
+    width: 34px;
+    height: 34px;
+    flex: 0 0 auto;
+    border: 1px solid var(--line);
+    border-radius: 50%;
+    object-fit: cover;
+    background: #f2eee6;
+}
+
+.account-chip-copy {
+    display: grid;
+    gap: 1px;
+    min-width: 0;
+    line-height: 1.05;
+}
+
+.account-kicker {
+    color: var(--muted);
+    font-size: 0.68rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.account-chip strong {
+    display: block;
+    max-width: 140px;
+    overflow: hidden;
+    font-size: 0.9rem;
+    font-weight: 850;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .page-shell {
@@ -1074,6 +1131,10 @@ a {
     .app-nav {
         position: static;
         padding: 12px;
+    }
+
+    .account-chip {
+        max-width: min(100%, 240px);
     }
 
     .nav-actions {
