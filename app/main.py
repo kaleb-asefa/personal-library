@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, HTTPException, status, Depends
+from fastapi import FastAPI, Request, HTTPException, status, Depends, Query
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.exceptions import RequestValidationError
@@ -8,7 +8,7 @@ from fastapi.exception_handlers import http_exception_handler, request_validatio
 
 from typing import Annotated
 
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.orm import joinedload, selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -105,16 +105,38 @@ async def user_books_page(
     request: Request,
     current_user: CurrentUser,
     db: Annotated[AsyncSession, Depends(get_db)],
+    skip: int = Query(0, ge=0),
+    limit: int = Query(10, ge=1, le=100),
 ):
     require_owner(user_id, current_user)
+
+    total = await db.execute(
+        select(func.count(Book.book_id))
+        .where(Book.user_id == current_user.user_id)
+    )
+    total = total.scalar_one() or 0
     
     books = await db.execute(
         select(Book)
         .where(Book.user_id == current_user.user_id)
+        .order_by(Book.published_year.desc())
+        .offset(skip)
+        .limit(limit)
         .options(joinedload(Book.author), joinedload(Book.genres), joinedload(Book.user))
     )
     books = books.scalars().unique().all()
-    return templates.TemplateResponse(request, "user_books.html", {"user": current_user, "books": books})
+    return templates.TemplateResponse(
+        request,
+        "user_books.html",
+        {
+            "user": current_user,
+            "books": books,
+            "total": total,
+            "skip": skip,
+            "limit": limit,
+            "has_more": skip + len(books) < total,
+        },
+    )
 
 @app.get("/books/new", response_class=HTMLResponse, include_in_schema=False)
 async def add_book_page(

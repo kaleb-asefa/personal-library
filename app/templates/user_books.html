@@ -5,6 +5,10 @@
 {% block content %}
     {% set read_count = books|selectattr('status', 'equalto', 'read')|list|length %}
     {% set rated_books = books|selectattr('rating')|list %}
+    {% set current_page = (skip // limit) + 1 %}
+    {% set total_pages = ((total + limit - 1) // limit) if total else 1 %}
+    {% set page_start = skip + 1 if total else 0 %}
+    {% set page_end = skip + books|length %}
 
     <div data-auth-required data-owner-id="{{ user.user_id }}">
     <header class="page-header">
@@ -22,24 +26,56 @@
     <section class="stats-grid" aria-label="Reading progress">
         <div class="stat-panel">
             <span>On my shelf</span>
+            <strong>{{ total }}</strong>
+        </div>
+        <div class="stat-panel">
+            <span>This page</span>
             <strong>{{ books|length }}</strong>
         </div>
         <div class="stat-panel">
-            <span>Finished</span>
-            <strong>{{ read_count }}</strong>
-        </div>
-        <div class="stat-panel">
-            <span>Want to read</span>
-            <strong>{{ books|length - read_count }}</strong>
+            <span>Page</span>
+            <strong>{{ current_page }}/{{ total_pages }}</strong>
         </div>
     </section>
 
     {% if books %}
+        <div class="pagination-summary">
+            Showing {{ page_start }}-{{ page_end }} of {{ total }} books
+        </div>
+
         <section class="book-grid" aria-label="{{ user.username }} books">
             {% for book in books %}
                 {% include "_book_tile.html" %}
             {% endfor %}
         </section>
+
+        <nav class="pagination-nav" aria-label="Book pages">
+            {% if skip > 0 %}
+                <a class="btn btn-outline-dark" href="/users/{{ user.user_id }}/books?skip={{ [skip - limit, 0]|max }}&limit={{ limit }}">
+                    <i class="bi bi-arrow-left"></i>
+                    Previous
+                </a>
+            {% else %}
+                <span class="btn btn-outline-secondary disabled" aria-disabled="true">
+                    <i class="bi bi-arrow-left"></i>
+                    Previous
+                </span>
+            {% endif %}
+
+            <span class="page-count">Page {{ current_page }} of {{ total_pages }}</span>
+
+            {% if has_more %}
+                <a class="btn btn-dark" href="/users/{{ user.user_id }}/books?skip={{ skip + limit }}&limit={{ limit }}">
+                    Next
+                    <i class="bi bi-arrow-right"></i>
+                </a>
+            {% else %}
+                <span class="btn btn-secondary disabled" aria-disabled="true">
+                    Next
+                    <i class="bi bi-arrow-right"></i>
+                </span>
+            {% endif %}
+        </nav>
     {% else %}
         <section class="empty-state">
             <i class="bi bi-journal-plus"></i>

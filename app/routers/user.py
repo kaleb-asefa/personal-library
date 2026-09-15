@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, File, HTTPException, Response, status, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Response, status, UploadFile
 from starlette.concurrency import run_in_threadpool
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -6,8 +6,8 @@ from ...image_utils import process_profile_pic, delete_profile_pic
 from PIL import UnidentifiedImageError
 from typing import Annotated
 from ...orm import User, get_db, Book
-from ..schema import UserCreate, booksResponse, UserUpdate, publicUserResponse, privateUserResponse, Token
-from sqlalchemy.orm import joinedload
+from ..schema import UserCreate, booksResponse, UserUpdate, publicUserResponse, privateUserResponse, Token, paginatedBooksResponse
+from sqlalchemy.orm import joinedload, selectinload
 from datetime import timedelta
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import func
@@ -83,19 +83,38 @@ async def get_user(user_id: int, current_user: CurrentUser):
     return current_user
 
 
-@router.get("/{user_id}/books", response_model=list[booksResponse])
+@router.get("/{user_id}/books", response_model=paginatedBooksResponse)
 async def get_user_books(
     user_id: int,
     current_user: CurrentUser,
     db: Annotated[AsyncSession, Depends(get_db)],
+    skip: int = Query(0, ge=0),
+    limit: int = Query(10, ge=1, le=100),
 ):
     require_owner(user_id, current_user)
+    total = await db.execute(
+        select(func.count(Book.book_id))
+        .where(Book.user_id == current_user.user_id)
+    )
+    total = total.scalar_one() or 0
+
     books = await db.execute(
         select(Book)
         .where(Book.user_id == current_user.user_id)
-        .options(joinedload(Book.author), joinedload(Book.genres))
+        .order_by(Book.published_year.desc())
+        .offset(skip)
+        .limit(limit)
+        .options(joinedload(Book.author), selectinload(Book.genres))
     )
-    return books.scalars().unique().all()
+    books = books.scalars().unique().all()
+
+    return paginatedBooksResponse(
+        books=books,
+        total=total,
+        skip=skip,
+        limit=limit,
+        has_more=skip + len(books) < total,
+    )
 
 
 @router.patch("/{user_id}", response_model=privateUserResponse)
