@@ -8,5 +8,15 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 30
     max_profile_pic_size: int = 5 * 1024 * 1024  # 5 MB
 
+    reset_password_token_expire_minutes: int = 60
+
+    mail_server: str = 'localhost'
+    mail_port: int = 587
+    mail_username: str = ''
+    mail_password: SecretStr = SecretStr('')
+    mail_from: str = 'no-reply@example.com'
+    mail_use_tls: bool = True
+
+    frontend_base_url: str = 'http://localhost:8000'
 
 settings = Settings()
