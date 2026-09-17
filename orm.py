@@ -1,6 +1,8 @@
-from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, Table, Enum, CheckConstraint
+from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, Table, Enum, CheckConstraint, DateTime
 from sqlalchemy.orm import DeclarativeBase, relationship, sessionmaker, Mapped, mapped_column
 from contextlib import contextmanager
+from datetime import datetime
+from pytz import UTC
 
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 
@@ -17,6 +19,7 @@ class User(Base):
     password_hash : Mapped[str] = mapped_column(String(200), nullable=False)
 
     books : Mapped[list['Book']] = relationship("Book", back_populates="user", cascade="all, delete-orphan")
+    password_reset_tokens : Mapped[list['PasswordResetToken']] = relationship("PasswordResetToken", back_populates="user", cascade="all, delete-orphan")
     image_file : Mapped[str | None] = mapped_column(String, nullable=True)
 
     @property
@@ -71,7 +74,18 @@ class Genre(Base):
         return self.name
 
 
+class PasswordResetToken(Base):
+    __tablename__ = 'password_reset_tokens'
+    token_id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.user_id'), nullable=False)
+    token = Column(String, nullable=False, unique=True)
+    expires_at = Column(DateTime, nullable=False)
+    created_at = Column(DateTime, nullable=False, default=datetime.now(UTC))
 
+    user : Mapped["User"] = relationship("User", back_populates="password_reset_tokens")
+
+    def __repr__(self):
+        return f"PasswordResetToken(token={self.token}, user_id={self.user_id})"
 
 
 AsyncSessionLocal = async_sessionmaker(bind=engine, expire_on_commit=False, class_=AsyncSession)
