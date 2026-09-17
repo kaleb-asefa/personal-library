@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}Logout | Personal Library{% endblock %}
+
+{% block content %}
+    <section class="auth-layout auth-layout-single" data-auth-required>
+        <div class="auth-copy">
+            <p class="eyebrow">Session</p>
+            <h1>Sign out</h1>
+            <p class="page-lede">Your shelf will be waiting when you come back.</p>
+        </div>
+
+        <div class="auth-card auth-card-center">
+            <div class="auth-card-header">
+                <p class="eyebrow">Confirm</p>
+                <h2>Ready to sign out?</h2>
+                <p>You will need to sign in again to manage your books.</p>
+            </div>
+
+            <div class="auth-actions">
+                <button class="btn btn-dark submit-button" type="button" data-logout>
+                    <i class="bi bi-box-arrow-right"></i>
+                    Sign Out
+                </button>
+                <a class="btn btn-outline-dark submit-button" data-session-link="shelf" href="/">Cancel</a>
+            </div>
+        </div>
+    </section>
+{% endblock %}

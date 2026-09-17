@@ -1,60 +1,30 @@
 {% extends "base.html" %}
 {% from "_macros.html" import error_message %}
 
-{% block title %}My Shelf · The Stacks{% endblock %}
+{% block title %}Personal Library | Your reading life{% endblock %}
 
 {% block content %}
-<header class="page-head">
-    <div>
-        <p class="eyebrow">Reading log</p>
-        <h1>{{ user.username }}'s shelf</h1>
-    </div>
-    <div class="head-stats">
-        <span><strong>{{ total_books }}</strong> on shelf</span>
-        <span class="dot">·</span>
-        <span><strong>{{ read_count }}</strong> finished</span>
-    </div>
-</header>
-
-<div class="shelf-actions">
-    <a class="btn btn-primary" href="/books/new"><i class="bi bi-plus-lg"></i> Add a book</a>
-</div>
-
-{% if not reading and not up_next and not finished %}
-    <section class="empty">
-        <i class="bi bi-book"></i>
-        <h2>Your shelf is empty</h2>
-        <p>Add the first book you want to track.</p>
-        <a class="btn btn-primary" href="/books/new">Add a book</a>
-    </section>
-{% else %}
-
-    {% if reading %}
-    <section class="shelf-section">
-        <h2 class="section-title">Currently reading</h2>
-        <div class="book-list">
-            {% for book in reading %}{% include "_book_row.html" %}{% endfor %}
+    <section class="welcome-layout" data-guest-only>
+        <div class="welcome-copy">
+            <p class="eyebrow">Your reading life, in one place</p>
+            <h1>Keep the books that stay with you.</h1>
+            <p class="page-lede">Build a private shelf, track what you have finished, and keep the next good read close at hand.</p>
+            <div class="welcome-actions">
+                <a class="btn btn-dark" href="/users/new">
+                    <i class="bi bi-person-plus"></i>
+                    Create Account
+                </a>
+                <a class="btn btn-outline-dark" href="/login">
+                    <i class="bi bi-box-arrow-in-right"></i>
+                    Sign In
+                </a>
+            </div>
+        </div>
+        <div class="welcome-shelf" aria-hidden="true">
+            <div class="shelf-book shelf-book-tall"><span>READ</span></div>
+            <div class="shelf-book shelf-book-short"><span>KEEP</span></div>
+            <div class="shelf-book shelf-book-wide"><span>RETURN</span></div>
+            <div class="shelf-line"></div>
         </div>
     </section>
-    {% endif %}
-
-    {% if up_next %}
-    <section class="shelf-section">
-        <h2 class="section-title">Up next</h2>
-        <div class="book-list">
-            {% for book in up_next %}{% include "_book_row.html" %}{% endfor %}
-        </div>
-    </section>
-    {% endif %}
-
-    {% if finished %}
-    <section class="shelf-section">
-        <h2 class="section-title">Finished</h2>
-        <div class="book-list">
-            {% for book in finished %}{% include "_book_row.html" %}{% endfor %}
-        </div>
-    </section>
-    {% endif %}
-
-{% endif %}
 {% endblock %}

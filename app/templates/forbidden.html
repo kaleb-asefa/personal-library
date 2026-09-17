@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block title %}Forbidden | Personal Library{% endblock %}
+
+{% block content %}
+    <section class="empty-state">
+        <i class="bi bi-shield-lock"></i>
+        <p class="eyebrow">403 Forbidden</p>
+        <h1>This shelf is private</h1>
+        <p>You are signed in, but this page belongs to another reader.</p>
+        <a class="btn btn-dark" data-session-link="shelf" href="/">
+            <i class="bi bi-bookshelf"></i>
+            Return to My Shelf
+        </a>
+    </section>
+{% endblock %}

@@ -4,20 +4,37 @@
 {% block title %}Log in · The Stacks{% endblock %}
 
 {% block content %}
-<div class="auth-wrap">
-    <div class="auth-aside">
-        <p class="eyebrow">Reading log</p>
-        <h1>Keep one quiet shelf.</h1>
-        <p class="lede">Log in to track what you're reading, what's up next, and what you finished.</p>
-    </div>
+    <section class="auth-layout">
+        <div class="auth-copy">
+            <p class="eyebrow">Access</p>
+            <h1>Sign in</h1>
+            <p class="page-lede">Return to your shelf and pick up exactly where you left off.</p>
 
-    <form class="auth-card" action="/auth/login" method="post">
-        <h2>Welcome back</h2>
+            <div class="auth-points">
+                <div class="auth-point">
+                    <i class="bi bi-journal-bookmark"></i>
+                    <div>
+                        <strong>Your own shelf</strong>
+                        <p>Your books, progress, and ratings stay tied to your account.</p>
+                    </div>
+                </div>
+                <div class="auth-point">
+                    <i class="bi bi-shield-lock"></i>
+                    <div>
+                        <strong>One reading home</strong>
+                        <p>See what is waiting and what you have already finished.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-        {% set err = request.query_params.get('error') %}
-        {% if err %}
-        <div class="alert alert-error">{{ error_message(err) }}</div>
-        {% endif %}
+        <form class="action-form auth-card" data-api-form="login" hx-boost="false">
+            <div class="form-alert" data-form-message hidden></div>
+            <div class="auth-card-header">
+                <p class="eyebrow">Welcome back</p>
+                <h2>Sign in to your library</h2>
+                <p>Use the email and password from your reader account.</p>
+            </div>
 
         <label class="field">
             <span>Email</span>
