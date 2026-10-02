@@ -84,6 +84,7 @@ app.mount("/media", StaticFiles(directory=BASE_DIR / "media"), name="media")
 
 app.include_router(auth.router)
 app.include_router(books.router, prefix="/api/books")
+app.include_router(user.router, prefix="/api/users")
 app.include_router(users.router)
 
 

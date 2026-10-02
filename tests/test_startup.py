@@ -32,7 +32,12 @@ class StartupTests(unittest.TestCase):
             schema_response = client.get("/openapi.json")
             self.assertEqual(schema_response.status_code, 200)
             self.assertIn("/api/books", schema_response.json()["paths"])
+            self.assertIn("/api/users", schema_response.json()["paths"])
+            self.assertIn("/api/users/me", schema_response.json()["paths"])
+            self.assertIn("/api/users/token", schema_response.json()["paths"])
             self.assertEqual(client.get("/api/books").status_code, 401)
+            self.assertEqual(client.get("/api/users/me").status_code, 401)
+            self.assertEqual(client.post("/api/users/token").status_code, 422)
 
 
 if __name__ == "__main__":
