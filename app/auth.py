@@ -6,7 +6,8 @@ from fastapi import Cookie, Depends, HTTPException, status
 from typing import Annotated
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from ..orm import get_db, User
+from .db import get_db
+from .models import User
 from pwdlib import PasswordHash
 
 from .config import settings

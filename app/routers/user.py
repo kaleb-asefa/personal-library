@@ -2,10 +2,11 @@ from fastapi import APIRouter, Depends, File, HTTPException, Query, Response, st
 from starlette.concurrency import run_in_threadpool
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from ...image_utils import process_profile_pic, delete_profile_pic
+from image_utils import process_profile_pic, delete_profile_pic
 from PIL import UnidentifiedImageError
 from typing import Annotated
-from ...orm import User, get_db, Book
+from ..db import get_db
+from ..models import User, Book
 from ..schema import UserCreate, booksResponse, UserUpdate, publicUserResponse, privateUserResponse, Token, paginatedBooksResponse
 from sqlalchemy.orm import joinedload, selectinload
 from datetime import timedelta

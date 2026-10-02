@@ -12,8 +12,6 @@ from sqlalchemy import select, func
 from sqlalchemy.orm import joinedload, selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..orm import Book, Author, Genre, get_db, User, Base, engine
-
 from .routers import user, books
 from .auth import CurrentUser, require_owner
 
@@ -31,7 +29,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from .config import settings
 from .db import Base, engine, get_db
-from .models import Book, Genre, User
+from .models import Author, Book, Genre, User
 from .routers import auth, books, users
 from .templating import templates
 
@@ -85,7 +83,7 @@ app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 app.mount("/media", StaticFiles(directory=BASE_DIR / "media"), name="media")
 
 app.include_router(auth.router)
-app.include_router(books.router)
+app.include_router(books.router, prefix="/api/books")
 app.include_router(users.router)
 
 
