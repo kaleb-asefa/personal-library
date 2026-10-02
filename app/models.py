@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from sqlalchemy import (
     CheckConstraint,
     Column,
@@ -8,7 +6,6 @@ from sqlalchemy import (
     Integer,
     String,
     Table,
-    func,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -33,11 +30,17 @@ class User(Base):
     username: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
-    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    image_file: Mapped[str | None] = mapped_column(String, nullable=True)
 
     books: Mapped[list["Book"]] = relationship(
         "Book", back_populates="user", cascade="all, delete-orphan"
     )
+
+    @property
+    def image_path(self) -> str:
+        if self.image_file:
+            return f"/media/profile/{self.image_file}"
+        return "/static/profile/default.png"
 
     def __repr__(self) -> str:
         return f"<User {self.username}>"
@@ -89,8 +92,6 @@ class Book(Base):
     user_id: Mapped[int] = mapped_column(
         ForeignKey("users.user_id", ondelete="CASCADE"), index=True
     )
-    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
-
     author = relationship("Author", back_populates="books")
     genres = relationship("Genre", secondary=books_genres, back_populates="books")
     user = relationship("User", back_populates="books")

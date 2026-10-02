@@ -37,7 +37,12 @@ app/
   security.py    password hashing
   deps.py        get_current_user dependency
   templating.py  Jinja2 templates
-  routers/       auth, books, users
+  routers/       auth, books, user (user API and profile pages)
   templates/     base, index (shelf), login, signup, book_detail, book_form, profile, profile_edit
   static/        css/style.css, js/app.js
 ```
+
+The user router serves the JSON API at `/api/users` and HTML profile pages at
+`/users/me`. User and book models remain compatible with existing databases
+without `created_at` columns. `create_all()` creates missing tables; it does not
+migrate the schema of existing tables.

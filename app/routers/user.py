@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, File, HTTPException, Query, Response, status, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, Response, status, UploadFile
+from fastapi.responses import HTMLResponse, RedirectResponse
 from starlette.concurrency import run_in_threadpool
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -14,13 +15,15 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import func
 from ..auth import AUTH_COOKIE_NAME, CurrentUser, create_access_token, hash_password, require_owner, verify_password
 from ..config import settings
+from ..deps import get_current_user
+from ..templating import templates
 
 
 
 
-router = APIRouter()
+api_router = APIRouter(prefix="/api/users")
 
-@router.post("", response_model=privateUserResponse, status_code=status.HTTP_201_CREATED)
+@api_router.post("", response_model=privateUserResponse, status_code=status.HTTP_201_CREATED)
 async def create_user(user: UserCreate, db: Annotated[AsyncSession, Depends(get_db)]):
     result = await db.execute(select(User).where(func.lower(User.username) == user.username.lower()))
     result = result.first()
@@ -39,7 +42,7 @@ async def create_user(user: UserCreate, db: Annotated[AsyncSession, Depends(get_
     return new_user
 
 
-@router.post("/token", response_model=Token)
+@api_router.post("/token", response_model=Token)
 async def login_for_access_token(
     response: Response,
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
@@ -66,25 +69,25 @@ async def login_for_access_token(
     return Token(access_token=access_token, token_type="bearer")
 
 
-@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+@api_router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 async def logout(response: Response):
     response.delete_cookie(key=AUTH_COOKIE_NAME, httponly=True, samesite="lax")
 
 
-@router.get("/me", response_model=privateUserResponse)
+@api_router.get("/me", response_model=privateUserResponse)
 async def read_users_me(current_user: CurrentUser):
     return current_user
 
 
 
 
-@router.get("/{user_id}", response_model=privateUserResponse)
+@api_router.get("/{user_id}", response_model=privateUserResponse)
 async def get_user(user_id: int, current_user: CurrentUser):
     require_owner(user_id, current_user)
     return current_user
 
 
-@router.get("/{user_id}/books", response_model=paginatedBooksResponse)
+@api_router.get("/{user_id}/books", response_model=paginatedBooksResponse)
 async def get_user_books(
     user_id: int,
     current_user: CurrentUser,
@@ -118,7 +121,7 @@ async def get_user_books(
     )
 
 
-@router.patch("/{user_id}", response_model=privateUserResponse)
+@api_router.patch("/{user_id}", response_model=privateUserResponse)
 async def update_user(
     user_id: int,
     user_update: UserUpdate,
@@ -150,7 +153,7 @@ async def update_user(
     await db.refresh(user, attribute_names=['username', 'email', 'password_hash', 'image_file'])
     return user
 
-@router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+@api_router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_user(
     user_id: int,
     response: Response,
@@ -163,7 +166,7 @@ async def delete_user(
     response.delete_cookie(key=AUTH_COOKIE_NAME, httponly=True, samesite="lax")
 
 
-@router.patch("/{user_id}/picture", response_model=privateUserResponse)
+@api_router.patch("/{user_id}/picture", response_model=privateUserResponse)
 async def update_user_picture(
     user_id: int,
     image_file: Annotated[UploadFile, File()],
@@ -196,7 +199,7 @@ async def update_user_picture(
         delete_profile_pic(old_file_name)
     return current_user
 
-@router.delete("/{user_id}/picture", status_code=status.HTTP_204_NO_CONTENT)
+@api_router.delete("/{user_id}/picture", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_user_picture(
     user_id: int,
     current_user: CurrentUser,
@@ -215,4 +218,96 @@ async def delete_user_picture(
     await db.refresh(current_user, attribute_names=['image_file'])
     delete_profile_pic(old_file_name)
     return current_user
+
+
+router = APIRouter()
+router.include_router(api_router)
+
+
+def _redirect_with_error(path: str, code: str) -> RedirectResponse:
+    return RedirectResponse(url=f"{path}?error={code}", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@router.get("/users/me/edit", response_class=HTMLResponse, include_in_schema=False)
+async def edit_profile_page(
+    request: Request,
+    user: Annotated[User, Depends(get_current_user)],
+):
+    return templates.TemplateResponse(request, "profile_edit.html", {"user": user})
+
+
+@router.post("/users/me/edit", include_in_schema=False)
+async def update_profile(
+    request: Request,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
+    username: Annotated[str, Form(...)],
+    email: Annotated[str, Form(...)],
+    current_password: Annotated[str | None, Form()] = None,
+    new_password: Annotated[str | None, Form()] = None,
+):
+    username = username.strip()
+    email = email.strip().lower()
+
+    if username.lower() != user.username.lower():
+        if await db.scalar(
+            select(User).where(func.lower(User.username) == username.lower(), User.user_id != user.user_id)
+        ):
+            return _redirect_with_error("/users/me/edit", "username_taken")
+
+    if email.lower() != user.email.lower():
+        if await db.scalar(
+            select(User).where(func.lower(User.email) == email.lower(), User.user_id != user.user_id)
+        ):
+            return _redirect_with_error("/users/me/edit", "email_taken")
+
+    if new_password:
+        if len(new_password) < 8:
+            return _redirect_with_error("/users/me/edit", "short_password")
+        if not current_password or not verify_password(current_password, user.password_hash):
+            return _redirect_with_error("/users/me/edit", "wrong_password")
+        user.password_hash = hash_password(new_password)
+
+    user.username = username
+    user.email = email
+    await db.commit()
+    await db.refresh(user)
+
+    request.session["username"] = user.username
+    request.session["email"] = user.email
+    return RedirectResponse(url="/users/me", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@router.get("/users/me", response_class=HTMLResponse, include_in_schema=False)
+async def profile_page(
+    request: Request,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
+):
+    books = await db.scalars(select(Book).where(Book.user_id == user.user_id))
+    books = list(books.all())
+    read_count = sum(1 for book in books if book.status == "read")
+    reading_count = sum(1 for book in books if book.status == "reading")
+    return templates.TemplateResponse(
+        request,
+        "profile.html",
+        {
+            "user": user,
+            "total_books": len(books),
+            "read_count": read_count,
+            "reading_count": reading_count,
+        },
+    )
+
+
+@router.post("/users/me/delete", include_in_schema=False)
+async def delete_account(
+    request: Request,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
+):
+    await db.delete(user)
+    await db.commit()
+    request.session.clear()
+    return RedirectResponse(url="/signup", status_code=status.HTTP_303_SEE_OTHER)
     
