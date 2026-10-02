@@ -23,62 +23,51 @@
     hx-indicator="#route-loader"
 >
     {% set active_path = request.url.path %}
-    {% set logged_in = request.session.get('user_id') %}
+    <div id="route-loader" class="route-loader" aria-hidden="true"></div>
 
-    <nav class="topbar">
-        <a class="brand" href="/">
+    <nav class="app-nav">
+        <a class="brand-mark" href="/">
             <i class="bi bi-bookshelf"></i>
             <span class="brand-name">The Stacks</span>
         </a>
 
         <div class="nav-actions">
-            <a data-nav-link data-auth-only data-session-link="shelf" class="nav-link-pill" href="/" hidden>
+            <a data-nav-link data-auth-only data-session-link="shelf" class="nav-link-pill" href="/" aria-label="My Shelf" title="My Shelf" hidden>
                 <i class="bi bi-bookshelf"></i>
                 <span>My Shelf</span>
             </a>
-            <a data-nav-link data-auth-only class="nav-link-pill {{ 'is-active' if active_path == '/books/new' else '' }}" href="/books/new" {% if active_path == '/books/new' %}aria-current="page"{% endif %} hidden>
+            <a data-nav-link data-auth-only class="nav-link-pill {{ 'is-active' if active_path == '/books/new' else '' }}" href="/books/new" aria-label="Add Book" title="Add Book" {% if active_path == '/books/new' %}aria-current="page"{% endif %} hidden>
                 <i class="bi bi-plus-square"></i>
                 <span>Add Book</span>
             </a>
-            <a data-nav-link data-auth-only data-session-link="settings" class="account-chip" href="/" hidden>
+            <a data-nav-link data-auth-only data-session-link="settings" class="account-chip" href="/" aria-label="Account settings" title="Account settings" hidden>
                 <img data-session-avatar class="account-avatar" src="{{ url_for('static', path='/profile/default.png') }}" alt="Profile image">
                 <span class="account-chip-copy">
                     <span class="account-kicker">Signed in as</span>
                     <strong data-session-username>Account</strong>
                 </span>
             </a>
-            <a data-nav-link data-auth-only class="nav-link-pill" href="/logout" hidden>
+            <a data-nav-link data-auth-only class="nav-link-pill" href="/logout" aria-label="Sign Out" title="Sign Out" hidden>
                 <i class="bi bi-box-arrow-right"></i>
                 <span>Sign Out</span>
             </a>
-            <a data-nav-link data-guest-only class="nav-link-pill {{ 'is-active' if active_path == '/login' else '' }}" href="/login" {% if active_path == '/login' %}aria-current="page"{% endif %}>
+            <a data-nav-link data-guest-only class="nav-link-pill {{ 'is-active' if active_path == '/login' else '' }}" href="/login" aria-label="Sign In" title="Sign In" {% if active_path == '/login' %}aria-current="page"{% endif %}>
                 <i class="bi bi-box-arrow-in-right"></i>
                 <span>Sign In</span>
             </a>
-            <a data-nav-link data-guest-only class="nav-link-pill nav-link-strong {{ 'is-active' if active_path == '/users/new' else '' }}" href="/users/new" {% if active_path == '/users/new' %}aria-current="page"{% endif %}>
+            <a data-nav-link data-guest-only class="nav-link-pill nav-link-strong {{ 'is-active' if active_path == '/users/new' else '' }}" href="/users/new" aria-label="Create Account" title="Create Account" {% if active_path == '/users/new' %}aria-current="page"{% endif %}>
                 <i class="bi bi-person-plus"></i>
                 <span>Create Account</span>
             </a>
         </div>
 
-        <div class="nav-spacer"></div>
-
-        {% if logged_in %}
-        <div class="user-chip">
-            <span class="avatar">{{ request.session.get('username', '?')[:1] | upper }}</span>
-            <form action="/auth/logout" method="post" class="logout-form">
-                <button type="submit" class="btn-link">Log out</button>
-            </form>
-        </div>
-        {% else %}
-        <a href="/login" class="nav-login">Log in</a>
-        {% endif %}
     </nav>
 
-    <main class="container">
+    <main id="page-content" class="page-shell">
         {% block content %}{% endblock %}
     </main>
 
     <script src="{{ url_for('static', path='/js/app.js') }}"></script>
+    <script src="{{ url_for('static', path='/js/forms.js') }}"></script>
 </body>
 </html>

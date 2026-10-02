@@ -87,20 +87,11 @@ app.include_router(user.router)
 
 
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
-async def home(
-    request: Request,
-    db: AsyncSession = Depends(get_db),
-):
-    """Shelf home. Logged-out visitors land on the login page."""
+async def home(request: Request):
     user_id = request.session.get("user_id")
-    if not user_id:
-        return RedirectResponse(url="/login", status_code=303)
-
-@app.get("/", include_in_schema=False, response_class=HTMLResponse)
-async def home(request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
-    books = await db.execute(select(Book).options(selectinload(Book.author), selectinload(Book.genres), selectinload(Book.user)))
-    books = books.scalars().unique().all()
-    return templates.TemplateResponse(request, "index.html", {'books': books})
+    if user_id:
+        return RedirectResponse(url=f"/users/{user_id}/books", status_code=303)
+    return templates.TemplateResponse(request, "index.html", {})
 
 @app.get("/users", response_class=HTMLResponse, include_in_schema=False)
 async def users_page(request: Request, current_user: CurrentUser):

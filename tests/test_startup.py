@@ -18,6 +18,20 @@ class StartupTests(unittest.TestCase):
         import_data = get_import_data(path=app_path)
         self.assertEqual(import_data.import_string, "app.main:app")
 
+    def test_public_pages_include_ui_dependencies(self):
+        client = TestClient(main.app)
+        for path in ("/", "/login", "/users/new"):
+            with self.subTest(path=path):
+                response = client.get(path)
+                self.assertEqual(response.status_code, 200)
+                self.assertIn('id="page-content" class="page-shell"', response.text)
+                self.assertIn('class="app-nav"', response.text)
+                self.assertIn('id="route-loader"', response.text)
+                self.assertIn("/static/js/forms.js", response.text)
+                self.assertNotIn('class="nav-login"', response.text)
+        self.assertEqual(client.get("/static/profile/default.png").status_code, 200)
+        self.assertIn('href="/users/new">Sign up', client.get("/login").text)
+
     def test_startup_with_shared_database_models(self):
         self.assertIs(auth.User, models.User)
         self.assertIs(auth.get_db, db.get_db)
@@ -69,6 +83,11 @@ class StartupTests(unittest.TestCase):
                 patch.object(db, "AsyncSessionLocal", test_sessions),
                 TestClient(main.app) as client,
             ):
+                with sqlite3.connect(database_path) as connection:
+                    connection.execute("INSERT INTO authors (author_id, name, country) VALUES (1, 'Test Author', 'Test Country')")
+                    connection.execute(
+                        "INSERT INTO books VALUES (1, 'Visible Shelf Book', 1, 2020, 'unread', 0, 1)"
+                    )
                 login_response = client.post(
                     "/api/users/token",
                     data={"username": "legacy@example.com", "password": password},
@@ -84,7 +103,21 @@ class StartupTests(unittest.TestCase):
 
                 books_response = client.get("/api/users/1/books")
                 self.assertEqual(books_response.status_code, 200)
-                self.assertEqual(books_response.json()["total"], 0)
+                self.assertEqual(books_response.json()["total"], 1)
+
+                page_markers = {
+                    "/users/1/books": "Visible Shelf Book",
+                    "/books/new": 'name="genre_names"',
+                    "/books/1": 'aria-label="Book actions"',
+                    "/books/1/edit": "Visible Shelf Book",
+                    "/users/1/edit": 'data-api-form="update-user-picture"',
+                }
+                for path, marker in page_markers.items():
+                    with self.subTest(path=path):
+                        page_response = client.get(path)
+                        self.assertEqual(page_response.status_code, 200)
+                        self.assertIn(marker, page_response.text)
+                        self.assertIn("/static/js/forms.js", page_response.text)
 
                 create_response = client.post(
                     "/api/users",
