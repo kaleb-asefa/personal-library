@@ -4,8 +4,12 @@ import aiosmtplib
 from app.config import settings
 
 from fastapi.templating import Jinja2Templates
+from pathlib import Path
 
-templates = Jinja2Templates(directory="templates")
+path = Path(__file__).parent
+temp_dir = path / "app" / "templates"
+
+templates = Jinja2Templates(directory=str(temp_dir))
 
 async def send_email(
         to_email: str,
@@ -38,9 +42,9 @@ async def send_password_reset_email(
         reset_token: str,
 ) -> None:
 
-    reset_url = f"{settings.frontend_url}/reset-password?token={reset_token}"
+    reset_url = f"{settings.frontend_base_url}/reset-password?token={reset_token}"
     template = templates.get_template("email/password_reset_email.html")
-    html_content = template.render(username=username, reset_url=reset_url)
+    html_content = template.render(username=username, email=to_email, reset_url=reset_url)
 
     plain_text_content = f'''Hello {username},
 

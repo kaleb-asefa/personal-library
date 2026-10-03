@@ -89,16 +89,16 @@ async def forgot_password(
 
         token = generate_secure_token()
         token_hash = hash_reset_token(token)
-        expires_at = datetime.now(UTC) + timedelta(minutes=settings.password_reset_token_expire_minutes)
+        expires_at = datetime.now(UTC) + timedelta(minutes=settings.reset_password_token_expire_minutes)
 
         password_reset_token = PasswordResetToken(
             user_id=user.user_id,
-            token_hash=token_hash,
+            token=token_hash,
             expires_at=expires_at,
         )
         db.add(password_reset_token)
         await db.commit()
-        background_tasks.add_task(send_password_reset_email, user.email, token)
+        background_tasks.add_task(send_password_reset_email, user.email, user.username, token)
 
     return {"message": "If an account with that email exists, a password reset email has been sent."}
 
@@ -125,6 +125,22 @@ async def reset_password(
     await db.commit()
 
     return {"message": "Password has been reset successfully. you can now log in with your new password."}
+
+
+@api_router.patch("/me/password", status_code=status.HTTP_200_OK)
+async def update_password(
+    request: ChangePasswordRequest,
+    current_user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    if not verify_password(request.current_password, current_user.password_hash):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Current password is incorrect")
+
+    current_user.password_hash = hash_password(request.new_password)
+    await db.execute(sql_delete(PasswordResetToken).where(PasswordResetToken.user_id == current_user.user_id))
+    await db.commit()
+
+    return {"message": "Password has been updated successfully."}
 
 
 @api_router.get("/{user_id}", response_model=privateUserResponse)
