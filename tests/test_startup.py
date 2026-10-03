@@ -54,7 +54,17 @@ class StartupTests(unittest.TestCase):
             self.assertEqual(client.get("/api/books").status_code, 401)
             self.assertEqual(client.get("/api/users/me").status_code, 401)
             self.assertEqual(client.post("/api/users/token").status_code, 422)
+            self.assertEqual(client.get("/users/me", follow_redirects=False).status_code, 303)
             self.assertEqual(client.get("/users/me/edit", follow_redirects=False).status_code, 303)
+            self.assertEqual(client.post("/users/me/edit").status_code, 401)
+            self.assertEqual(client.post("/users/me/delete").status_code, 401)
+
+            profile_routes = [
+                route for route in main.app.routes
+                if getattr(route, "path", "").startswith("/users/me")
+            ]
+            self.assertTrue(profile_routes)
+            self.assertTrue(all(route.endpoint.__module__ == "app.main" for route in profile_routes))
 
     def test_user_api_with_existing_database_schema(self):
         password = "legacy-test-password"
