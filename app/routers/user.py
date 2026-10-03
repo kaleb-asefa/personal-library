@@ -108,7 +108,7 @@ async def reset_password(
     request: ResetPasswordRequest,
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
-    result = await db.execute(select(PasswordResetToken).where(PasswordResetToken.token_hash == hash_reset_token(request.token)))
+    result = await db.execute(select(PasswordResetToken).where(PasswordResetToken.token == hash_reset_token(request.token)))
     token_entry = result.scalar_one_or_none()
 
     if not token_entry or token_entry.expires_at.replace(tzinfo=UTC) < datetime.now(UTC):
