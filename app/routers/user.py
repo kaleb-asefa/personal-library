@@ -7,7 +7,7 @@ from image_utils import process_profile_pic, delete_profile_pic
 from PIL import UnidentifiedImageError
 from typing import Annotated
 from ..db import get_db
-from ..models import User, Book
+from ..models import User, Book, PasswordResetToken
 from ..schema import UserCreate, booksResponse, UserUpdate, publicUserResponse, privateUserResponse, Token, paginatedBooksResponse, ResetPasswordRequest, ChangePasswordRequest, ForgotPasswordRequest
 from sqlalchemy.orm import joinedload, selectinload
 from datetime import timedelta, datetime, UTC
@@ -84,8 +84,47 @@ async def forgot_password(
     user = result.scalar_one_or_none()
 
     if user:
-        await db.execute()
+        await db.execute(
+            sql_delete(PasswordResetToken).where(PasswordResetToken.user_id == user.user_id))
 
+        token = generate_secure_token()
+        token_hash = hash_reset_token(token)
+        expires_at = datetime.now(UTC) + timedelta(minutes=settings.password_reset_token_expire_minutes)
+
+        password_reset_token = PasswordResetToken(
+            user_id=user.user_id,
+            token_hash=token_hash,
+            expires_at=expires_at,
+        )
+        db.add(password_reset_token)
+        await db.commit()
+        background_tasks.add_task(send_password_reset_email, user.email, token)
+
+    return {"message": "If an account with that email exists, a password reset email has been sent."}
+
+
+@api_router.post("/reset-password", status_code=status.HTTP_200_OK)
+async def reset_password(
+    request: ResetPasswordRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    result = await db.execute(select(PasswordResetToken).where(PasswordResetToken.token_hash == hash_reset_token(request.token)))
+    token_entry = result.scalar_one_or_none()
+
+    if not token_entry or token_entry.expires_at.replace(tzinfo=UTC) < datetime.now(UTC):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired token")
+
+    result = await db.execute(select(User).where(User.user_id == token_entry.user_id))
+    user = result.scalar_one()
+
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invalid or expired token")
+
+    user.password_hash = hash_password(request.new_password)
+    await db.execute(sql_delete(PasswordResetToken).where(PasswordResetToken.user_id == user.user_id))
+    await db.commit()
+
+    return {"message": "Password has been reset successfully. you can now log in with your new password."}
 
 
 @api_router.get("/{user_id}", response_model=privateUserResponse)
