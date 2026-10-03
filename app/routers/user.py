@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Depends, File, HTTPException, Query, Response, status, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Response, status, UploadFile, BackgroundTasks
 from starlette.concurrency import run_in_threadpool
+from sqlalchemy import delete as sql_delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from image_utils import process_profile_pic, delete_profile_pic
@@ -7,13 +8,14 @@ from PIL import UnidentifiedImageError
 from typing import Annotated
 from ..db import get_db
 from ..models import User, Book
-from ..schema import UserCreate, booksResponse, UserUpdate, publicUserResponse, privateUserResponse, Token, paginatedBooksResponse
+from ..schema import UserCreate, booksResponse, UserUpdate, publicUserResponse, privateUserResponse, Token, paginatedBooksResponse, ResetPasswordRequest, ChangePasswordRequest, ForgotPasswordRequest
 from sqlalchemy.orm import joinedload, selectinload
-from datetime import timedelta
+from datetime import timedelta, datetime, UTC
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import func
-from ..auth import AUTH_COOKIE_NAME, CurrentUser, create_access_token, hash_password, require_owner, verify_password
+from ..auth import AUTH_COOKIE_NAME, CurrentUser, create_access_token, hash_password, require_owner, verify_password, generate_secure_token, hash_reset_token
 from ..config import settings
+from ...email_utils import send_password_reset_email
 api_router = APIRouter(prefix="/api/users")
 
 @api_router.post("", response_model=privateUserResponse, status_code=status.HTTP_201_CREATED)
@@ -71,6 +73,18 @@ async def logout(response: Response):
 async def read_users_me(current_user: CurrentUser):
     return current_user
 
+
+@api_router.post("/forgot-password", status_code=status.HTTP_204_NO_CONTENT)
+async def forgot_password(
+    request: ForgotPasswordRequest,
+    background_tasks: BackgroundTasks,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    result = await db.execute(select(User).where(func.lower(User.email) == request.email.lower()))
+    user = result.scalar_one_or_none()
+
+    if user:
+        await db.execute()
 
 
 
