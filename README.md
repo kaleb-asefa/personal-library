@@ -33,7 +33,7 @@ On first run the app creates `library.db` at the project root and seeds a list o
 app/
   main.py        FastAPI app, lifespan (creates tables, seeds genres), page routes
   db.py          async engine, Base, get_db
-  models.py      User, Author, Genre, Book, books_genres
+  models.py      User, Author, Genre, Book, PasswordResetToken, books_genres
   security.py    password hashing
   deps.py        get_current_user dependency
   templating.py  Jinja2 templates

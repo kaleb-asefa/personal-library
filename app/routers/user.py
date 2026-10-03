@@ -15,7 +15,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import func
 from ..auth import AUTH_COOKIE_NAME, CurrentUser, create_access_token, hash_password, require_owner, verify_password, generate_secure_token, hash_reset_token
 from ..config import settings
-from ...email_utils import send_password_reset_email
+from email_utils import send_password_reset_email
 api_router = APIRouter(prefix="/api/users")
 
 @api_router.post("", response_model=privateUserResponse, status_code=status.HTTP_201_CREATED)

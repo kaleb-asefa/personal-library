@@ -137,6 +137,10 @@ class StartupTests(unittest.TestCase):
                 self.assertIsNone(create_response.json()["image_file"])
 
             with sqlite3.connect(database_path) as connection:
+                self.assertIn(
+                    "password_reset_tokens",
+                    {row[0] for row in connection.execute("SELECT name FROM sqlite_master WHERE type='table'")},
+                )
                 self.assertEqual(connection.execute("SELECT count(*) FROM users").fetchone()[0], 2)
                 columns = {column[1] for column in connection.execute("PRAGMA table_info(users)")}
                 self.assertNotIn("created_at", columns)

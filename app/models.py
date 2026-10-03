@@ -1,6 +1,9 @@
+from datetime import UTC, datetime
+
 from sqlalchemy import (
     CheckConstraint,
     Column,
+    DateTime,
     Enum,
     ForeignKey,
     Integer,
@@ -34,6 +37,9 @@ class User(Base):
 
     books: Mapped[list["Book"]] = relationship(
         "Book", back_populates="user", cascade="all, delete-orphan"
+    )
+    password_reset_tokens: Mapped[list["PasswordResetToken"]] = relationship(
+        "PasswordResetToken", back_populates="user", cascade="all, delete-orphan"
     )
 
     @property
@@ -98,3 +104,18 @@ class Book(Base):
 
     def __repr__(self) -> str:
         return f"<Book {self.title}>"
+
+
+class PasswordResetToken(Base):
+    __tablename__ = "password_reset_tokens"
+
+    token_id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.user_id"), nullable=False)
+    token: Mapped[str] = mapped_column(String, nullable=False, unique=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=lambda: datetime.now(UTC))
+
+    user: Mapped[User] = relationship("User", back_populates="password_reset_tokens")
+
+    def __repr__(self) -> str:
+        return f"PasswordResetToken(token={self.token}, user_id={self.user_id})"
