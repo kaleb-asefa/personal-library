@@ -2,7 +2,7 @@ import sqlite3
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 from fastapi.testclient import TestClient
 from fastapi_cli.discover import get_import_data
@@ -31,6 +31,59 @@ class StartupTests(unittest.TestCase):
                 self.assertNotIn('class="nav-login"', response.text)
         self.assertEqual(client.get("/static/profile/default.png").status_code, 200)
         self.assertIn('href="/users/new">Sign up', client.get("/login").text)
+
+    def test_password_recovery_pages_and_api_flow(self):
+        test_engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+        test_sessions = async_sessionmaker(test_engine, expire_on_commit=False)
+        with (
+            patch.object(main, "engine", test_engine),
+            patch.object(db, "AsyncSessionLocal", test_sessions),
+            patch.object(user, "send_password_reset_email", new_callable=AsyncMock) as send_email,
+            TestClient(main.app) as client,
+        ):
+            forgot_page = client.get("/forgot-password")
+            self.assertEqual(forgot_page.status_code, 200)
+            self.assertIn('data-api-form="forgot-password"', forgot_page.text)
+            self.assertIn("/static/js/forms.js", forgot_page.text)
+
+            reset_page = client.get("/reset-password?token=preview-token")
+            self.assertEqual(reset_page.status_code, 200)
+            self.assertIn('name="token" value="preview-token"', reset_page.text)
+
+            register_response = client.post(
+                "/api/users",
+                json={
+                    "username": "reset-reader",
+                    "email": "reset-reader@example.com",
+                    "password": "old-password-123",
+                },
+            )
+            self.assertEqual(register_response.status_code, 201)
+
+            forgot_response = client.post(
+                "/api/users/forgot-password",
+                json={"email": "reset-reader@example.com"},
+            )
+            self.assertEqual(forgot_response.status_code, 204)
+            send_email.assert_awaited_once()
+            raw_token = send_email.await_args.args[2]
+
+            reset_response = client.post(
+                "/api/users/reset-password",
+                json={"token": raw_token, "new_password": "new-password-456"},
+            )
+            self.assertEqual(reset_response.status_code, 200)
+
+            old_password_login = client.post(
+                "/api/users/token",
+                data={"username": "reset-reader@example.com", "password": "old-password-123"},
+            )
+            new_password_login = client.post(
+                "/api/users/token",
+                data={"username": "reset-reader@example.com", "password": "new-password-456"},
+            )
+            self.assertEqual(old_password_login.status_code, 401)
+            self.assertEqual(new_password_login.status_code, 200)
 
     def test_startup_with_shared_database_models(self):
         self.assertIs(auth.User, models.User)

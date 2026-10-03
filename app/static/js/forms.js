@@ -260,6 +260,32 @@ const handleLogin = async (form) => {
     window.setTimeout(() => visitPage(destination), 350);
 };
 
+const handleForgotPassword = async (form) => {
+    const formData = new FormData(form);
+    await submitJson("/api/users/forgot-password", { email: formData.get("email") });
+    showMessage(
+        form,
+        "success",
+        "If an account with that email exists, a password reset link has been sent.",
+    );
+    form.reset();
+};
+
+const handleResetPassword = async (form) => {
+    const formData = new FormData(form);
+    const newPassword = formData.get("new_password");
+    if (newPassword !== formData.get("confirm_password")) {
+        throw new Error("The passwords do not match.");
+    }
+
+    await submitJson("/api/users/reset-password", {
+        token: formData.get("token"),
+        new_password: newPassword,
+    });
+    showMessage(form, "success", "Your password has been updated. You can now sign in.");
+    form.querySelector("button[type='submit']").disabled = true;
+};
+
 const handleAddBook = async (form) => {
     const formData = new FormData(form);
     const genreNames = formData.getAll("genre_names");
@@ -382,6 +408,14 @@ document.body.addEventListener("submit", async (event) => {
 
         if (formType === "login") {
             await handleLogin(form);
+        }
+
+        if (formType === "forgot-password") {
+            await handleForgotPassword(form);
+        }
+
+        if (formType === "reset-password") {
+            await handleResetPassword(form);
         }
 
         if (formType === "add-book") {

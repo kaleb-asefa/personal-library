@@ -106,6 +106,16 @@ def create_user_page(request: Request):
 def login_page(request: Request):
     return templates.TemplateResponse(request, "login.html")
 
+
+@app.get("/forgot-password", response_class=HTMLResponse, include_in_schema=False)
+def forgot_password_page(request: Request):
+    return templates.TemplateResponse(request, "forgot_password.html")
+
+
+@app.get("/reset-password", response_class=HTMLResponse, include_in_schema=False)
+def reset_password_page(request: Request, token: str = ""):
+    return templates.TemplateResponse(request, "reset_password.html", {"token": token})
+
 @app.get("/logout", response_class=HTMLResponse, include_in_schema=False)
 def logout_page(request: Request, current_user: CurrentUser):
     return templates.TemplateResponse(request, "logout.html")
