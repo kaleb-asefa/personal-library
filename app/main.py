@@ -32,6 +32,7 @@ from .db import Base, engine, get_db
 from .models import Author, Book, Genre, User
 from .routers import auth, books, user
 from .templating import templates
+from .db import AsyncSessionLocal
 
 BASE_DIR = Path(__file__).resolve().parent
 
@@ -62,9 +63,6 @@ async def seed_genres(db: AsyncSession) -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    from .db import AsyncSessionLocal
 
     async with AsyncSessionLocal() as session:
         await seed_genres(session)

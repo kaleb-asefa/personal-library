@@ -73,9 +73,9 @@ async def api_create_book(book: booksCreate, db: Annotated[AsyncSession, Depends
         rating=0,
         genres=genres
     )
-    db.add(book)
+    db.add(new_book)
     await db.commit()
-    return RedirectResponse(url=f"/books/{book.book_id}", status_code=status.HTTP_303_SEE_OTHER)
+    return RedirectResponse(url=f"/books/{new_book.book_id}", status_code=status.HTTP_303_SEE_OTHER)
 
 @router.get('/{book_id}', response_model=booksResponse)
 async def api_book_detail(book_id: int, current_user: CurrentUser, db: Annotated[AsyncSession, Depends(get_db)]):
