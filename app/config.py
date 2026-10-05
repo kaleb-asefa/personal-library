@@ -12,6 +12,12 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 30
     max_profile_pic_size: int = 5 * 1024 * 1024  # 5 MB
 
+    s3_bucket_name: str
+    s3_region: str
+    s3_access_key_id: SecretStr | None = None
+    s3_secret_access_key: SecretStr | None = None
+    s3_endpoint_url: str | None = None
+
     reset_password_token_expire_minutes: int = 60
 
     mail_server: str = 'localhost'
